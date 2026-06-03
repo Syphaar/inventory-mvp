@@ -17,32 +17,35 @@ import {
 import { useMemo } from "react";
 
 export function DashboardPage() {
-  const products = useStore((s) => s.products);
-  const sales = useStore((s) => s.sales);
+  const products = useStore((state) => state.products);
+  const sales = useStore((state) => state.sales);
 
   const totalProducts = products.length;
-  const stockValue = products.reduce((sum, p) => sum + p.stock * p.cost, 0);
-  const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
-  const lowStock = products.filter((p) => p.stock <= p.lowStockThreshold).length;
+  const stockValue = products.reduce((sum, product) => sum + product.stock * product.cost, 0);
+  const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+  const lowStock = products.filter((product) => product.stock <= product.lowStockThreshold).length;
 
   const salesByDay = useMemo(() => {
     const map = new Map<string, number>();
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86400000);
-      const key = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    for (let day = 13; day >= 0; day--) {
+      const date = new Date(Date.now() - day * 86400000);
+      const key = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       map.set(key, 0);
     }
-    sales.forEach((s) => {
-      const key = new Date(s.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      if (map.has(key)) map.set(key, (map.get(key) ?? 0) + s.total);
+    sales.forEach((sale) => {
+      const key = new Date(sale.date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+      if (map.has(key)) map.set(key, (map.get(key) ?? 0) + sale.total);
     });
     return Array.from(map, ([day, value]) => ({ day, value }));
   }, [sales]);
 
-  const stockData = products.map((p) => ({
-    name: p.name.length > 14 ? p.name.slice(0, 12) + "…" : p.name,
-    stock: p.stock,
-    low: p.stock <= p.lowStockThreshold,
+  const stockData = products.map((product) => ({
+    name: product.name.length > 14 ? product.name.slice(0, 12) + "…" : product.name,
+    stock: product.stock,
+    low: product.stock <= product.lowStockThreshold,
   }));
 
   const stats = [
@@ -75,18 +78,18 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s) => {
-          const Icon = s.icon;
+        {stats.map((stat) => {
+          const Icon = stat.icon;
           return (
-            <Card key={s.label}>
+            <Card key={stat.label}>
               <CardContent className="p-5 flex items-center justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {s.label}
+                    {stat.label}
                   </div>
-                  <div className="text-2xl font-semibold mt-1">{s.value}</div>
+                  <div className="text-2xl font-semibold mt-1">{stat.value}</div>
                 </div>
-                <Icon className={`h-8 w-8 ${s.color}`} />
+                <Icon className={`h-8 w-8 ${stat.color}`} />
               </CardContent>
             </Card>
           );
@@ -140,8 +143,8 @@ export function DashboardPage() {
                   }}
                 />
                 <Bar dataKey="stock" radius={[6, 6, 0, 0]}>
-                  {stockData.map((d, i) => (
-                    <Cell key={i} fill={d.low ? "var(--chart-5)" : "var(--chart-2)"} />
+                  {stockData.map((item, index) => (
+                    <Cell key={index} fill={item.low ? "var(--chart-5)" : "var(--chart-2)"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -167,15 +170,17 @@ export function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {sales.slice(0, 8).map((s) => {
-                  const p = products.find((p) => p.id === s.productId);
+                {sales.slice(0, 8).map((sale) => {
+                  const product = products.find((product) => product.id === sale.productId);
                   return (
-                    <tr key={s.id} className="border-b last:border-0">
-                      <td className="py-2.5">{formatDateTime(s.date)}</td>
-                      <td className="py-2.5">{p?.name ?? "—"}</td>
-                      <td className="py-2.5">{s.customer}</td>
-                      <td className="py-2.5 text-right">{s.quantity}</td>
-                      <td className="py-2.5 text-right font-medium">{formatCurrency(s.total)}</td>
+                    <tr key={sale.id} className="border-b last:border-0">
+                      <td className="py-2.5">{formatDateTime(sale.date)}</td>
+                      <td className="py-2.5">{product?.name ?? "—"}</td>
+                      <td className="py-2.5">{sale.customer}</td>
+                      <td className="py-2.5 text-right">{sale.quantity}</td>
+                      <td className="py-2.5 text-right font-medium">
+                        {formatCurrency(sale.total)}
+                      </td>
                     </tr>
                   );
                 })}

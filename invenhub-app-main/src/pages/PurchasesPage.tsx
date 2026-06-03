@@ -8,12 +8,12 @@ import { formatCurrency, formatDateTime } from "@/lib/format";
 import { toast } from "sonner";
 
 export function PurchasesPage() {
-  const purchases = useStore((s) => s.purchases);
-  const products = useStore((s) => s.products);
+  const purchases = useStore((state) => state.purchases);
+  const products = useStore((state) => state.products);
   const [open, setOpen] = useState(false);
 
-  const total = purchases.reduce((s, x) => s + x.total, 0);
-  const units = purchases.reduce((s, x) => s + x.quantity, 0);
+  const total = purchases.reduce((sum, purchase) => sum + purchase.total, 0);
+  const units = purchases.reduce((sum, purchase) => sum + purchase.quantity, 0);
 
   const handleDelete = (id: string) => {
     if (confirm("Delete this purchase? Stock will be reduced accordingly.")) {
@@ -62,11 +62,11 @@ export function PurchasesPage() {
               </thead>
               <tbody>
                 {purchases.map((pu) => {
-                  const p = products.find((p) => p.id === pu.productId);
+                  const product = products.find((product) => product.id === pu.productId);
                   return (
                     <tr key={pu.id} className="border-b last:border-0 hover:bg-muted/40">
                       <td className="px-4 py-3">{formatDateTime(pu.date)}</td>
-                      <td className="px-4 py-3 font-medium">{p?.name ?? "—"}</td>
+                      <td className="px-4 py-3 font-medium">{product?.name ?? "—"}</td>
                       <td className="px-4 py-3">{pu.supplier}</td>
                       <td className="px-4 py-3 text-right">{pu.quantity}</td>
                       <td className="px-4 py-3 text-right">{formatCurrency(pu.unitCost)}</td>

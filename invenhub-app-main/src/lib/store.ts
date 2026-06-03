@@ -126,7 +126,7 @@ const seedProducts: Product[] = [
   },
 ];
 
-const daysAgo = (d: number) => new Date(Date.now() - d * 86400000).toISOString();
+const daysAgo = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
 
 const seedSales: Sale[] = [
   {
@@ -247,7 +247,8 @@ function load(): State {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {
-    // ignore parse errors
+    // ignore parse errors and fallback to initial state
+    // Ignore invalid localStorage data
   }
   const initial: State = {
     user: null,
@@ -263,23 +264,23 @@ function load(): State {
 let state: State = load();
 const listeners = new Set<() => void>();
 
-function set(updater: (s: State) => State) {
+function set(updater: (prevState: State) => State) {
   state = updater(state);
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
-  listeners.forEach((l) => l());
+  listeners.forEach((listener) => listener());
 }
 
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  return () => listeners.delete(l);
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 };
 
 const getSnapshot = () => state;
 const getServerSnapshot = () => state;
 
-export function useStore<T>(selector: (s: State) => T): T {
+export function useStore<T>(selector: (currentState: State) => T): T {
   return useSyncExternalStore(
     subscribe,
     () => selector(state),
@@ -295,18 +296,18 @@ export const auth = {
     if (!email || !password) throw new Error("Email and password are required");
     const user: User = { id: uid(), name: email.split("@")[0] || "User", email };
     const token = "mock." + btoa(email) + "." + uid();
-    set((s) => ({ ...s, user, token }));
+    set((prevState) => ({ ...prevState, user, token }));
     return user;
   },
   register(name: string, email: string, password: string) {
     if (!name || !email || !password) throw new Error("All fields are required");
     const user: User = { id: uid(), name, email };
     const token = "mock." + btoa(email) + "." + uid();
-    set((s) => ({ ...s, user, token }));
+    set((prevState) => ({ ...prevState, user, token }));
     return user;
   },
   logout() {
-    set((s) => ({ ...s, user: null, token: null }));
+    set((prevState) => ({ ...prevState, user: null, token: null }));
   },
   isAuthed() {
     return !!state.token;
@@ -316,33 +317,40 @@ export const auth = {
 // ----- Products -----
 export const products = {
   create(input: Omit<Product, "id">) {
-    const p: Product = { ...input, id: uid() };
-    set((s) => ({ ...s, products: [p, ...s.products] }));
-    return p;
+    const product: Product = { ...input, id: uid() };
+    set((prevState) => ({ ...prevState, products: [product, ...prevState.products] }));
+    return product;
   },
   update(id: string, patch: Partial<Omit<Product, "id">>) {
-    set((s) => ({ ...s, products: s.products.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
+    set((prevState) => ({
+      ...prevState,
+      products: prevState.products.map((product) =>
+        product.id === id ? { ...product, ...patch } : product,
+      ),
+    }));
   },
   remove(id: string) {
-    set((s) => ({
-      ...s,
-      products: s.products.filter((p) => p.id !== id),
-      sales: s.sales.filter((x) => x.productId !== id),
-      purchases: s.purchases.filter((x) => x.productId !== id),
+    set((prevState) => ({
+      ...prevState,
+      products: prevState.products.filter((product) => product.id !== id),
+      sales: prevState.sales.filter((sale) => sale.productId !== id),
+      purchases: prevState.purchases.filter((purchase) => purchase.productId !== id),
     }));
   },
   adjustStock(id: string, delta: number) {
-    set((s) => ({
-      ...s,
-      products: s.products.map((p) =>
-        p.id === id ? { ...p, stock: Math.max(0, p.stock + delta) } : p,
+    set((prevState) => ({
+      ...prevState,
+      products: prevState.products.map((product) =>
+        product.id === id ? { ...product, stock: Math.max(0, product.stock + delta) } : product,
       ),
     }));
   },
   setStock(id: string, value: number) {
-    set((s) => ({
-      ...s,
-      products: s.products.map((p) => (p.id === id ? { ...p, stock: Math.max(0, value) } : p)),
+    set((prevState) => ({
+      ...prevState,
+      products: prevState.products.map((product) =>
+        product.id === id ? { ...product, stock: Math.max(0, value) } : product,
+      ),
     }));
   },
 };
@@ -350,7 +358,7 @@ export const products = {
 // ----- Sales (auto deduct stock) -----
 export const sales = {
   create(input: { productId: string; quantity: number; unitPrice: number; customer: string }) {
-    const prod = state.products.find((p) => p.id === input.productId);
+    const prod = state.products.find((product) => product.id === input.productId);
     if (!prod) throw new Error("Product not found");
     if (input.quantity <= 0) throw new Error("Quantity must be positive");
     if (prod.stock < input.quantity)
@@ -364,23 +372,27 @@ export const sales = {
       customer: input.customer || "Walk-in",
       date: new Date().toISOString(),
     };
-    set((s) => ({
-      ...s,
-      sales: [sale, ...s.sales],
-      products: s.products.map((p) =>
-        p.id === input.productId ? { ...p, stock: p.stock - input.quantity } : p,
+    set((prevState) => ({
+      ...prevState,
+      sales: [sale, ...prevState.sales],
+      products: prevState.products.map((product) =>
+        product.id === input.productId
+          ? { ...product, stock: product.stock - input.quantity }
+          : product,
       ),
     }));
     return sale;
   },
   remove(id: string) {
-    const sale = state.sales.find((s) => s.id === id);
+    const sale = state.sales.find((saleItem) => saleItem.id === id);
     if (!sale) return;
-    set((s) => ({
-      ...s,
-      sales: s.sales.filter((x) => x.id !== id),
-      products: s.products.map((p) =>
-        p.id === sale.productId ? { ...p, stock: p.stock + sale.quantity } : p,
+    set((prevState) => ({
+      ...prevState,
+      sales: prevState.sales.filter((saleItem) => saleItem.id !== id),
+      products: prevState.products.map((product) =>
+        product.id === sale.productId
+          ? { ...product, stock: product.stock + sale.quantity }
+          : product,
       ),
     }));
   },
@@ -389,7 +401,7 @@ export const sales = {
 // ----- Purchases (auto increase stock) -----
 export const purchases = {
   create(input: { productId: string; quantity: number; unitCost: number; supplier: string }) {
-    const prod = state.products.find((p) => p.id === input.productId);
+    const prod = state.products.find((product) => product.id === input.productId);
     if (!prod) throw new Error("Product not found");
     if (input.quantity <= 0) throw new Error("Quantity must be positive");
     const purchase: Purchase = {
@@ -401,23 +413,27 @@ export const purchases = {
       supplier: input.supplier || "Unknown",
       date: new Date().toISOString(),
     };
-    set((s) => ({
-      ...s,
-      purchases: [purchase, ...s.purchases],
-      products: s.products.map((p) =>
-        p.id === input.productId ? { ...p, stock: p.stock + input.quantity } : p,
+    set((prevState) => ({
+      ...prevState,
+      purchases: [purchase, ...prevState.purchases],
+      products: prevState.products.map((product) =>
+        product.id === input.productId
+          ? { ...product, stock: product.stock + input.quantity }
+          : product,
       ),
     }));
     return purchase;
   },
   remove(id: string) {
-    const pu = state.purchases.find((p) => p.id === id);
-    if (!pu) return;
-    set((s) => ({
-      ...s,
-      purchases: s.purchases.filter((x) => x.id !== id),
-      products: s.products.map((p) =>
-        p.id === pu.productId ? { ...p, stock: Math.max(0, p.stock - pu.quantity) } : p,
+    const purchase = state.purchases.find((purchaseItem) => purchaseItem.id === id);
+    if (!purchase) return;
+    set((prevState) => ({
+      ...prevState,
+      purchases: prevState.purchases.filter((purchaseItem) => purchaseItem.id !== id),
+      products: prevState.products.map((product) =>
+        product.id === purchase.productId
+          ? { ...product, stock: Math.max(0, product.stock - purchase.quantity) }
+          : product,
       ),
     }));
   },

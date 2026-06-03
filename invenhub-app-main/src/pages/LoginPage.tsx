@@ -14,8 +14,8 @@ export function LoginPage() {
   const [password, setPassword] = useState("demo1234");
   const [loading, setLoading] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     try {
       auth.login(email, password);
@@ -56,7 +56,12 @@ export function LoginPage() {
           </div>
           <div className="space-y-1.5">
             <Label>Email</Label>
-            <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              type="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Password</Label>
@@ -64,7 +69,7 @@ export function LoginPage() {
               type="password"
               required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
             />
           </div>
           <Button type="submit" disabled={loading} className="w-full">

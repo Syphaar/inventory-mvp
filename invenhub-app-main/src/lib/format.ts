@@ -1,11 +1,11 @@
-export const formatCurrency = (n: number) =>
+export const formatCurrency = (value: number) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
-  }).format(n);
+  }).format(value);
 
-export const formatNumber = (n: number) => new Intl.NumberFormat("en-US").format(n);
+export const formatNumber = (value: number) => new Intl.NumberFormat("en-US").format(value);
 
 export const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });

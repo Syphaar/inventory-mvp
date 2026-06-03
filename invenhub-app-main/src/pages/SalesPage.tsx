@@ -17,23 +17,26 @@ import {
 } from "recharts";
 
 export function SalesPage() {
-  const sales = useStore((s) => s.sales);
-  const products = useStore((s) => s.products);
+  const sales = useStore((state) => state.sales);
+  const products = useStore((state) => state.products);
   const [open, setOpen] = useState(false);
 
-  const total = sales.reduce((s, x) => s + x.total, 0);
-  const units = sales.reduce((s, x) => s + x.quantity, 0);
+  const total = sales.reduce((sum, sale) => sum + sale.total, 0);
+  const units = sales.reduce((sum, sale) => sum + sale.quantity, 0);
 
   const trend = useMemo(() => {
     const map = new Map<string, number>();
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86400000);
-      const key = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    for (let day = 13; day >= 0; day--) {
+      const date = new Date(Date.now() - day * 86400000);
+      const key = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       map.set(key, 0);
     }
-    sales.forEach((s) => {
-      const key = new Date(s.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      if (map.has(key)) map.set(key, (map.get(key) ?? 0) + s.total);
+    sales.forEach((sale) => {
+      const key = new Date(sale.date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+      if (map.has(key)) map.set(key, (map.get(key) ?? 0) + sale.total);
     });
     return Array.from(map, ([day, value]) => ({ day, value }));
   }, [sales]);
@@ -119,20 +122,20 @@ export function SalesPage() {
                 </tr>
               </thead>
               <tbody>
-                {sales.map((s) => {
-                  const p = products.find((p) => p.id === s.productId);
+                {sales.map((sale) => {
+                  const product = products.find((product) => product.id === sale.productId);
                   return (
-                    <tr key={s.id} className="border-b last:border-0 hover:bg-muted/40">
-                      <td className="px-4 py-3">{formatDateTime(s.date)}</td>
-                      <td className="px-4 py-3 font-medium">{p?.name ?? "—"}</td>
-                      <td className="px-4 py-3">{s.customer}</td>
-                      <td className="px-4 py-3 text-right">{s.quantity}</td>
-                      <td className="px-4 py-3 text-right">{formatCurrency(s.unitPrice)}</td>
+                    <tr key={sale.id} className="border-b last:border-0 hover:bg-muted/40">
+                      <td className="px-4 py-3">{formatDateTime(sale.date)}</td>
+                      <td className="px-4 py-3 font-medium">{product?.name ?? "—"}</td>
+                      <td className="px-4 py-3">{sale.customer}</td>
+                      <td className="px-4 py-3 text-right">{sale.quantity}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(sale.unitPrice)}</td>
                       <td className="px-4 py-3 text-right font-semibold">
-                        {formatCurrency(s.total)}
+                        {formatCurrency(sale.total)}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button size="icon" variant="ghost" onClick={() => handleDelete(s.id)}>
+                        <Button size="icon" variant="ghost" onClick={() => handleDelete(sale.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </td>

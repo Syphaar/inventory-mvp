@@ -13,8 +13,8 @@ export function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
     try {
       auth.register(name, email, password);
       toast.success("Account created");
@@ -39,11 +39,16 @@ export function RegisterPage() {
         </div>
         <div className="space-y-1.5">
           <Label>Name</Label>
-          <Input required value={name} onChange={(e) => setName(e.target.value)} />
+          <Input required value={name} onChange={(event) => setName(event.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Email</Label>
-          <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input
+            type="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
         </div>
         <div className="space-y-1.5">
           <Label>Password</Label>
@@ -52,7 +57,7 @@ export function RegisterPage() {
             required
             minLength={6}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(event) => setPassword(event.target.value)}
           />
         </div>
         <Button type="submit" className="w-full">

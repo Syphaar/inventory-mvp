@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 type Props = {
   open: boolean;
-  onOpenChange: (v: boolean) => void;
+  onOpenChange: (isOpen: boolean) => void;
   product?: Product | null;
 };
 
@@ -37,8 +37,8 @@ export function ProductDialog({ open, onOpenChange, product }: Props) {
     }
   }, [open, product]);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
     if (!form.name || !form.sku) {
       toast.error("Name and SKU are required");
       return;
@@ -63,19 +63,25 @@ export function ProductDialog({ open, onOpenChange, product }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>SKU</Label>
-              <Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+              <Input
+                value={form.sku}
+                onChange={(event) => setForm({ ...form, sku: event.target.value })}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Category</Label>
               <Input
                 value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                onChange={(event) => setForm({ ...form, category: event.target.value })}
               />
             </div>
           </div>
           <div className="space-y-1.5">
             <Label>Name</Label>
-            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <Input
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -84,7 +90,7 @@ export function ProductDialog({ open, onOpenChange, product }: Props) {
                 type="number"
                 min={0}
                 value={form.price}
-                onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                onChange={(event) => setForm({ ...form, price: Number(event.target.value) })}
               />
             </div>
             <div className="space-y-1.5">
@@ -93,7 +99,7 @@ export function ProductDialog({ open, onOpenChange, product }: Props) {
                 type="number"
                 min={0}
                 value={form.cost}
-                onChange={(e) => setForm({ ...form, cost: Number(e.target.value) })}
+                onChange={(event) => setForm({ ...form, cost: Number(event.target.value) })}
               />
             </div>
             <div className="space-y-1.5">
@@ -102,7 +108,7 @@ export function ProductDialog({ open, onOpenChange, product }: Props) {
                 type="number"
                 min={0}
                 value={form.stock}
-                onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
+                onChange={(event) => setForm({ ...form, stock: Number(event.target.value) })}
               />
             </div>
             <div className="space-y-1.5">
@@ -111,7 +117,9 @@ export function ProductDialog({ open, onOpenChange, product }: Props) {
                 type="number"
                 min={0}
                 value={form.lowStockThreshold}
-                onChange={(e) => setForm({ ...form, lowStockThreshold: Number(e.target.value) })}
+                onChange={(event) =>
+                  setForm({ ...form, lowStockThreshold: Number(event.target.value) })
+                }
               />
             </div>
           </div>

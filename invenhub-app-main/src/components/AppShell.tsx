@@ -23,7 +23,7 @@ const NAV = [
 ] as const;
 
 export function AppShell() {
-  const user = useStore((s) => s.user);
+  const user = useStore((state) => state.user);
   const navigate = useNavigate();
   const pathname = useLocation().pathname;
   const [open, setOpen] = useState(false);
@@ -90,7 +90,7 @@ export function AppShell() {
               variant="ghost"
               size="icon"
               className="lg:hidden"
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => setOpen((prev) => !prev)}
               aria-label="Toggle menu"
             >
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

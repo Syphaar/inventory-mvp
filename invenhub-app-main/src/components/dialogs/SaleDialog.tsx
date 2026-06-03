@@ -24,9 +24,9 @@ export function SaleDialog({
   onOpenChange,
 }: {
   open: boolean;
-  onOpenChange: (v: boolean) => void;
+  onOpenChange: (isOpen: boolean) => void;
 }) {
-  const productList = useStore((s) => s.products);
+  const productList = useStore((state) => state.products);
   const [productId, setProductId] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
@@ -43,12 +43,12 @@ export function SaleDialog({
   }, [open, productList]);
 
   useEffect(() => {
-    const p = productList.find((p) => p.id === productId);
-    if (p) setUnitPrice(p.price);
+    const product = productList.find((product) => product.id === productId);
+    if (product) setUnitPrice(product.price);
   }, [productId, productList]);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
     try {
       sales.create({ productId, quantity, unitPrice, customer });
       toast.success("Sale recorded · stock updated");
@@ -72,9 +72,9 @@ export function SaleDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {productList.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name} · {p.stock} in stock
+                {productList.map((product) => (
+                  <SelectItem key={product.id} value={product.id}>
+                    {product.name} · {product.stock} in stock
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -87,7 +87,7 @@ export function SaleDialog({
                 type="number"
                 min={1}
                 value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
+                onChange={(event) => setQuantity(Number(event.target.value))}
               />
             </div>
             <div className="space-y-1.5">
@@ -96,7 +96,7 @@ export function SaleDialog({
                 type="number"
                 min={0}
                 value={unitPrice}
-                onChange={(e) => setUnitPrice(Number(e.target.value))}
+                onChange={(event) => setUnitPrice(Number(event.target.value))}
               />
             </div>
           </div>
@@ -104,7 +104,7 @@ export function SaleDialog({
             <Label>Customer</Label>
             <Input
               value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
+              onChange={(event) => setCustomer(event.target.value)}
               placeholder="Walk-in"
             />
           </div>

@@ -10,25 +10,25 @@ import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 
 export function ProductsPage() {
-  const products = useStore((s) => s.products);
-  const [q, setQ] = useState("");
+  const products = useStore((state) => state.products);
+  const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
 
   const filtered = useMemo(() => {
-    const t = q.toLowerCase().trim();
-    if (!t) return products;
+    const term = query.toLowerCase().trim();
+    if (!term) return products;
     return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(t) ||
-        p.sku.toLowerCase().includes(t) ||
-        p.category.toLowerCase().includes(t),
+      (product) =>
+        product.name.toLowerCase().includes(term) ||
+        product.sku.toLowerCase().includes(term) ||
+        product.category.toLowerCase().includes(term),
     );
-  }, [products, q]);
+  }, [products, query]);
 
-  const handleDelete = (p: Product) => {
-    if (confirm(`Delete "${p.name}"? This also removes its sales & purchases.`)) {
-      productsApi.remove(p.id);
+  const handleDelete = (product: Product) => {
+    if (confirm(`Delete "${product.name}"? This also removes its sales & purchases.`)) {
+      productsApi.remove(product.id);
       toast.success("Product deleted");
     }
   };
@@ -40,8 +40,8 @@ export function ProductsPage() {
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search products..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
             className="pl-9"
           />
         </div>
@@ -71,24 +71,26 @@ export function ProductsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => (
-                  <tr key={p.id} className="border-b last:border-0 hover:bg-muted/40">
-                    <td className="px-4 py-3 font-mono text-xs">{p.sku}</td>
-                    <td className="px-4 py-3 font-medium">{p.name}</td>
+                {filtered.map((product) => (
+                  <tr key={product.id} className="border-b last:border-0 hover:bg-muted/40">
+                    <td className="px-4 py-3 font-mono text-xs">{product.sku}</td>
+                    <td className="px-4 py-3 font-medium">{product.name}</td>
                     <td className="px-4 py-3">
-                      <Badge variant="secondary">{p.category}</Badge>
+                      <Badge variant="secondary">{product.category}</Badge>
                     </td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(p.price)}</td>
+                    <td className="px-4 py-3 text-right">{formatCurrency(product.price)}</td>
                     <td className="px-4 py-3 text-right text-muted-foreground">
-                      {formatCurrency(p.cost)}
+                      {formatCurrency(product.cost)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span
                         className={
-                          p.stock <= p.lowStockThreshold ? "text-destructive font-semibold" : ""
+                          product.stock <= product.lowStockThreshold
+                            ? "text-destructive font-semibold"
+                            : ""
                         }
                       >
-                        {p.stock}
+                        {product.stock}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -96,13 +98,13 @@ export function ProductsPage() {
                         size="icon"
                         variant="ghost"
                         onClick={() => {
-                          setEditing(p);
+                          setEditing(product);
                           setOpen(true);
                         }}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => handleDelete(p)}>
+                      <Button size="icon" variant="ghost" onClick={() => handleDelete(product)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </td>

@@ -24,9 +24,9 @@ export function PurchaseDialog({
   onOpenChange,
 }: {
   open: boolean;
-  onOpenChange: (v: boolean) => void;
+  onOpenChange: (isOpen: boolean) => void;
 }) {
-  const productList = useStore((s) => s.products);
+  const productList = useStore((state) => state.products);
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [unitCost, setUnitCost] = useState(0);
@@ -43,12 +43,12 @@ export function PurchaseDialog({
   }, [open, productList]);
 
   useEffect(() => {
-    const p = productList.find((p) => p.id === productId);
-    if (p) setUnitCost(p.cost);
+    const product = productList.find((product) => product.id === productId);
+    if (product) setUnitCost(product.cost);
   }, [productId, productList]);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
     try {
       purchases.create({ productId, quantity, unitCost, supplier });
       toast.success("Purchase recorded · stock increased");
@@ -72,9 +72,9 @@ export function PurchaseDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {productList.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
+                {productList.map((product) => (
+                  <SelectItem key={product.id} value={product.id}>
+                    {product.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -87,7 +87,7 @@ export function PurchaseDialog({
                 type="number"
                 min={1}
                 value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
+                onChange={(event) => setQuantity(Number(event.target.value))}
               />
             </div>
             <div className="space-y-1.5">
@@ -96,7 +96,7 @@ export function PurchaseDialog({
                 type="number"
                 min={0}
                 value={unitCost}
-                onChange={(e) => setUnitCost(Number(e.target.value))}
+                onChange={(event) => setUnitCost(Number(event.target.value))}
               />
             </div>
           </div>
@@ -104,7 +104,7 @@ export function PurchaseDialog({
             <Label>Supplier</Label>
             <Input
               value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
+              onChange={(event) => setSupplier(event.target.value)}
               placeholder="Supplier name"
             />
           </div>

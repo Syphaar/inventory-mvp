@@ -8,7 +8,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export function StockPage() {
-  const products = useStore((s) => s.products);
+  const products = useStore((state) => state.products);
   const [edits, setEdits] = useState<Record<string, string>>({});
 
   const setLevel = (id: string) => {
@@ -19,14 +19,14 @@ export function StockPage() {
     }
     productsApi.setStock(id, val);
     toast.success("Stock updated");
-    setEdits((e) => {
-      const c = { ...e };
-      delete c[id];
-      return c;
+    setEdits((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
     });
   };
 
-  const lowStock = products.filter((p) => p.stock <= p.lowStockThreshold);
+  const lowStock = products.filter((product) => product.stock <= product.lowStockThreshold);
 
   return (
     <div className="space-y-4">
@@ -58,16 +58,18 @@ export function StockPage() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((p) => {
-                  const low = p.stock <= p.lowStockThreshold;
+                {products.map((product) => {
+                  const low = product.stock <= product.lowStockThreshold;
                   return (
-                    <tr key={p.id} className="border-b last:border-0 hover:bg-muted/40">
-                      <td className="px-4 py-3 font-medium">{p.name}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.sku}</td>
-                      <td className="px-4 py-3 text-right text-muted-foreground">
-                        {p.lowStockThreshold}
+                    <tr key={product.id} className="border-b last:border-0 hover:bg-muted/40">
+                      <td className="px-4 py-3 font-medium">{product.name}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                        {product.sku}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold">{p.stock}</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">
+                        {product.lowStockThreshold}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold">{product.stock}</td>
                       <td className="px-4 py-3">
                         {low ? (
                           <Badge variant="destructive">Low</Badge>
@@ -79,14 +81,14 @@ export function StockPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => productsApi.adjustStock(p.id, -1)}
+                          onClick={() => productsApi.adjustStock(product.id, -1)}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => productsApi.adjustStock(p.id, 1)}
+                          onClick={() => productsApi.adjustStock(product.id, 1)}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -96,16 +98,18 @@ export function StockPage() {
                           <Input
                             type="number"
                             min={0}
-                            value={edits[p.id] ?? ""}
-                            placeholder={String(p.stock)}
-                            onChange={(e) => setEdits({ ...edits, [p.id]: e.target.value })}
+                            value={edits[product.id] ?? ""}
+                            placeholder={String(product.stock)}
+                            onChange={(event) =>
+                              setEdits({ ...edits, [product.id]: event.target.value })
+                            }
                             className="w-20 h-8"
                           />
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setLevel(p.id)}
-                            disabled={edits[p.id] === undefined}
+                            onClick={() => setLevel(product.id)}
+                            disabled={edits[product.id] === undefined}
                           >
                             Save
                           </Button>
