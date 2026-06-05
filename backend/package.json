@@ -4,7 +4,8 @@
   "description": "Backend API for Inventory Management System",
   "main": "src/index.ts",
   "scripts": {
-    "start": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "prisma:generate": "prisma generate"
   },
@@ -16,6 +17,7 @@
     "express": "^4.21.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "tsconfig-paths": "^4.2.0",
     "uuid": "^10.0.0"
   },
   "devDependencies": {
