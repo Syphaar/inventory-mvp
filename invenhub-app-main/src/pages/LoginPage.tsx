@@ -44,14 +44,14 @@ export function LoginPage() {
             Track products, stock, sales and purchases in one elegant dashboard.
           </p>
         </div>
-        <div className="text-xs opacity-50">© 2026 Inventory MVP Pro</div>
+        <div className="text-xs opacity-50"> © {new Date().getFullYear()} Inventory MVP Pro </div>
       </div>
       <div className="flex items-center justify-center p-6">
         <form onSubmit={submit} className="w-full max-w-sm space-y-5">
           <div>
-            <h1 className="text-2xl font-semibold">Sign in</h1>
+            <h1 className="text-2xl font-semibold">Login</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Use any email and password — this is a demo.
+              Enter your email and password to access your inventory dashboard.
             </p>
           </div>
           <div className="space-y-1.5">
