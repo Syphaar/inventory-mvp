@@ -2,12 +2,12 @@ import { productModel } from "../models/product.model";
 import type { StockItemResponseDto } from "../dtos/stock.dto";
 
 export const stockService = {
-  getAll(lowStockOnly?: boolean): {
+  async getAll(lowStockOnly: boolean | undefined, userId: string): Promise<{
     data: StockItemResponseDto[];
     total: number;
     lowStockCount: number;
-  } {
-    const products = productModel.findAll();
+  }> {
+    const products = await productModel.findByUserId(userId);
 
     const stockItems: StockItemResponseDto[] = products.map((product) => ({
       productId: product.id,
@@ -33,39 +33,51 @@ export const stockService = {
     };
   },
 
-  adjustStock(productId: string, delta: number): StockItemResponseDto {
-    const product = productModel.adjustStock(productId, delta);
+  async adjustStock(productId: string, delta: number, userId: string): Promise<StockItemResponseDto> {
+    const product = await productModel.findById(productId);
 
-    if (!product) {
+    if (!product || product.userId !== userId) {
+      throwObject("Product not found", 404);
+    }
+
+    const updated = await productModel.adjustStock(productId, delta);
+
+    if (!updated) {
       throwObject("Product not found", 404);
     }
 
     return {
-      productId: product.id,
-      productName: product.name,
-      sku: product.sku,
-      category: product.category,
-      quantity: product.stock,
-      lowStockThreshold: product.lowStockThreshold,
-      isLowStock: product.stock <= product.lowStockThreshold,
+      productId: updated.id,
+      productName: updated.name,
+      sku: updated.sku,
+      category: updated.category,
+      quantity: updated.stock,
+      lowStockThreshold: updated.lowStockThreshold,
+      isLowStock: updated.stock <= updated.lowStockThreshold,
     };
   },
 
-  setStock(productId: string, quantity: number): StockItemResponseDto {
-    const product = productModel.setStock(productId, quantity);
+  async setStock(productId: string, quantity: number, userId: string): Promise<StockItemResponseDto> {
+    const product = await productModel.findById(productId);
 
-    if (!product) {
+    if (!product || product.userId !== userId) {
+      throwObject("Product not found", 404);
+    }
+
+    const updated = await productModel.setStock(productId, quantity);
+
+    if (!updated) {
       throwObject("Product not found", 404);
     }
 
     return {
-      productId: product.id,
-      productName: product.name,
-      sku: product.sku,
-      category: product.category,
-      quantity: product.stock,
-      lowStockThreshold: product.lowStockThreshold,
-      isLowStock: product.stock <= product.lowStockThreshold,
+      productId: updated.id,
+      productName: updated.name,
+      sku: updated.sku,
+      category: updated.category,
+      quantity: updated.stock,
+      lowStockThreshold: updated.lowStockThreshold,
+      isLowStock: updated.stock <= updated.lowStockThreshold,
     };
   },
 };

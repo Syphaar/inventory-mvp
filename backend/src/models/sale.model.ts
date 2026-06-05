@@ -1,50 +1,69 @@
+import { prisma } from "../lib/prisma";
 import type { Sale } from "../types";
-import { generateId } from "../utils/generate-id";
-
-const sales: Sale[] = [];
 
 export const saleModel = {
-  findAll(): Sale[] {
-    return sales;
+  async findAll(): Promise<Sale[]> {
+    const sales = await prisma.sale.findMany();
+    return sales.map(toSale);
   },
 
-  findByProductId(productId: string): Sale[] {
-    return sales.filter((sale) => sale.productId === productId);
+  async findByProductId(productId: string): Promise<Sale[]> {
+    const sales = await prisma.sale.findMany({ where: { productId } });
+    return sales.map(toSale);
   },
 
-  findById(id: string): Sale | undefined {
-    return sales.find((sale) => sale.id === id);
+  async findById(id: string): Promise<Sale | undefined> {
+    const sale = await prisma.sale.findUnique({ where: { id } });
+    return sale ? toSale(sale) : undefined;
   },
 
-  create(data: {
+  async create(data: {
     productId: string;
     quantity: number;
     unitPrice: number;
     total: number;
     customer: string;
-  }): Sale {
-    const newSale: Sale = {
-      id: generateId(),
-      productId: data.productId,
-      quantity: data.quantity,
-      unitPrice: data.unitPrice,
-      total: data.total,
-      customer: data.customer,
-      date: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-    };
-    sales.push(newSale);
-    return newSale;
+    date?: string;
+  }): Promise<Sale> {
+    const sale = await prisma.sale.create({
+      data: {
+        productId: data.productId,
+        quantity: data.quantity,
+        unitPrice: data.unitPrice,
+        total: data.total,
+        customer: data.customer,
+        date: data.date ? new Date(data.date) : new Date(),
+      },
+    });
+    return toSale(sale);
   },
 
-  remove(id: string): boolean {
-    const index = sales.findIndex((sale) => sale.id === id);
-    if (index === -1) return false;
-    sales.splice(index, 1);
-    return true;
+  async remove(id: string): Promise<boolean> {
+    try {
+      await prisma.sale.delete({ where: { id } });
+      return true;
+    } catch {
+      return false;
+    }
   },
 
-  clear(): void {
-    sales.length = 0;
+  async clear(): Promise<void> {
+    await prisma.sale.deleteMany();
   },
 };
+
+function toSale(s: {
+  id: string; productId: string; quantity: number; unitPrice: number;
+  total: number; customer: string; date: Date; createdAt: Date;
+}): Sale {
+  return {
+    id: s.id,
+    productId: s.productId,
+    quantity: s.quantity,
+    unitPrice: s.unitPrice,
+    total: s.total,
+    customer: s.customer,
+    date: s.date.toISOString(),
+    createdAt: s.createdAt.toISOString(),
+  };
+}

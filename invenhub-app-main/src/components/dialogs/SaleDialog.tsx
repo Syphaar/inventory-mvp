@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { sales, useStore } from "@/lib/store";
+import { useProducts, useCreateSale } from "@/lib/store";
 import { toast } from "sonner";
 
 export function SaleDialog({
@@ -26,7 +26,8 @@ export function SaleDialog({
   open: boolean;
   onOpenChange: (isOpen: boolean) => void;
 }) {
-  const productList = useStore((state) => state.products);
+  const { data: productList = [] } = useProducts();
+  const createSale = useCreateSale();
   const [productId, setProductId] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
@@ -43,18 +44,18 @@ export function SaleDialog({
   }, [open, productList]);
 
   useEffect(() => {
-    const product = productList.find((product) => product.id === productId);
+    const product = productList.find((p: any) => p.id === productId);
     if (product) setUnitPrice(product.price);
   }, [productId, productList]);
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      sales.create({ productId, quantity, unitPrice, customer });
+      await createSale.mutateAsync({ productId, quantity, unitPrice, customer });
       toast.success("Sale recorded · stock updated");
       onOpenChange(false);
-    } catch (err) {
-      toast.error((err as Error).message);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || (err as Error).message);
     }
   };
 
@@ -72,7 +73,7 @@ export function SaleDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {productList.map((product) => (
+                {productList.map((product: any) => (
                   <SelectItem key={product.id} value={product.id}>
                     {product.name} · {product.stock} in stock
                   </SelectItem>

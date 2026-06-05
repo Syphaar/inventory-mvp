@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useStore, products as productsApi, type Product } from "@/lib/store";
+import { useProducts, useDeleteProduct } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,28 +10,31 @@ import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 
 export function ProductsPage() {
-  const products = useStore((state) => state.products);
+  const { data: products = [], isLoading } = useProducts();
+  const deleteProduct = useDeleteProduct();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Product | null>(null);
+  const [editing, setEditing] = useState<any>(null);
 
   const filtered = useMemo(() => {
     const term = query.toLowerCase().trim();
     if (!term) return products;
     return products.filter(
-      (product) =>
+      (product: any) =>
         product.name.toLowerCase().includes(term) ||
         product.sku.toLowerCase().includes(term) ||
         product.category.toLowerCase().includes(term),
     );
   }, [products, query]);
 
-  const handleDelete = (product: Product) => {
+  const handleDelete = async (product: any) => {
     if (confirm(`Delete "${product.name}"? This also removes its sales & purchases.`)) {
-      productsApi.remove(product.id);
+      await deleteProduct.mutateAsync(product.id);
       toast.success("Product deleted");
     }
   };
+
+  if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading products...</div>;
 
   return (
     <div className="space-y-4">
@@ -71,7 +74,7 @@ export function ProductsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((product) => (
+                {filtered.map((product: any) => (
                   <tr key={product.id} className="border-b last:border-0 hover:bg-muted/40">
                     <td className="px-4 py-3 font-mono text-xs">{product.sku}</td>
                     <td className="px-4 py-3 font-medium">{product.name}</td>

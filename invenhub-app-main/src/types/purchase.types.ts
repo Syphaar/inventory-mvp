@@ -6,6 +6,7 @@ export interface Purchase {
   total: number;
   supplier: string;
   date: string;
+  createdAt: string;
 }
 
 export interface PurchaseWithProduct extends Purchase {
@@ -32,5 +33,5 @@ export interface PurchaseStats {
   totalCost: number;
   averageTransactionValue: number;
   transactionCount: number;
-  lastPurchaseDate?: string;
+  lastPurchaseDate: string | null;
 }

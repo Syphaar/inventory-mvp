@@ -6,6 +6,7 @@ export interface Sale {
   total: number;
   customer: string;
   date: string;
+  createdAt: string;
 }
 
 export interface SaleWithProduct extends Sale {
@@ -32,5 +33,5 @@ export interface SalesStats {
   totalRevenue: number;
   averageTransactionValue: number;
   transactionCount: number;
-  lastSaleDate?: string;
+  lastSaleDate: string | null;
 }

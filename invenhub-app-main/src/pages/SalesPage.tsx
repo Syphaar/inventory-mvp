@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useStore, sales as salesApi } from "@/lib/store";
+import { useSales, useProducts, useDeleteSale } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
@@ -17,12 +17,13 @@ import {
 } from "recharts";
 
 export function SalesPage() {
-  const sales = useStore((state) => state.sales);
-  const products = useStore((state) => state.products);
+  const { data: sales = [] } = useSales();
+  const { data: products = [] } = useProducts();
+  const deleteSale = useDeleteSale();
   const [open, setOpen] = useState(false);
 
-  const total = sales.reduce((sum, sale) => sum + sale.total, 0);
-  const units = sales.reduce((sum, sale) => sum + sale.quantity, 0);
+  const total = sales.reduce((sum: number, sale: any) => sum + sale.total, 0);
+  const units = sales.reduce((sum: number, sale: any) => sum + sale.quantity, 0);
 
   const trend = useMemo(() => {
     const map = new Map<string, number>();
@@ -31,7 +32,7 @@ export function SalesPage() {
       const key = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       map.set(key, 0);
     }
-    sales.forEach((sale) => {
+    sales.forEach((sale: any) => {
       const key = new Date(sale.date).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -41,9 +42,9 @@ export function SalesPage() {
     return Array.from(map, ([day, value]) => ({ day, value }));
   }, [sales]);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Delete this sale? Stock will be restored.")) {
-      salesApi.remove(id);
+      await deleteSale.mutateAsync(id);
       toast.success("Sale deleted · stock restored");
     }
   };
@@ -122,12 +123,12 @@ export function SalesPage() {
                 </tr>
               </thead>
               <tbody>
-                {sales.map((sale) => {
-                  const product = products.find((product) => product.id === sale.productId);
+                {sales.map((sale: any) => {
+                  const product = products.find((p: any) => p.id === sale.productId);
                   return (
                     <tr key={sale.id} className="border-b last:border-0 hover:bg-muted/40">
                       <td className="px-4 py-3">{formatDateTime(sale.date)}</td>
-                      <td className="px-4 py-3 font-medium">{product?.name ?? "—"}</td>
+                      <td className="px-4 py-3 font-medium">{product?.name ?? "\u2014"}</td>
                       <td className="px-4 py-3">{sale.customer}</td>
                       <td className="px-4 py-3 text-right">{sale.quantity}</td>
                       <td className="px-4 py-3 text-right">{formatCurrency(sale.unitPrice)}</td>

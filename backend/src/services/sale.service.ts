@@ -3,14 +3,20 @@ import { productModel } from "../models/product.model";
 import type { SaleResponseDto, SalesStatsResponseDto } from "../dtos/sale.dto";
 import type { CreateSaleRequestDto } from "../dtos/sale.dto";
 
+async function getUserProductIds(userId: string): Promise<string[]> {
+  const products = await productModel.findByUserId(userId);
+  return products.map((p) => p.id);
+}
+
 export const saleService = {
-  getAll(productId?: string): {
+  async getAll(productId: string | undefined, userId: string): Promise<{
     data: SaleResponseDto[];
     total: number;
     totalRevenue: number;
     count: number;
-  } {
-    let sales = saleModel.findAll();
+  }> {
+    const userProductIds = await getUserProductIds(userId);
+    let sales = (await saleModel.findAll()).filter((s) => userProductIds.includes(s.productId));
 
     if (productId) {
       sales = sales.filter((sale) => sale.productId === productId);
@@ -27,20 +33,25 @@ export const saleService = {
     };
   },
 
-  getById(id: string): SaleResponseDto {
-    const sale = saleModel.findById(id);
+  async getById(id: string, userId: string): Promise<SaleResponseDto> {
+    const sale = await saleModel.findById(id);
 
     if (!sale) {
+      throwObject("Sale not found", 404);
+    }
+
+    const product = await productModel.findById(sale.productId);
+    if (!product || product.userId !== userId) {
       throwObject("Sale not found", 404);
     }
 
     return mapToSaleResponse(sale);
   },
 
-  create(input: CreateSaleRequestDto): SaleResponseDto {
-    const product = productModel.findById(input.productId);
+  async create(input: CreateSaleRequestDto, userId: string): Promise<SaleResponseDto> {
+    const product = await productModel.findById(input.productId);
 
-    if (!product) {
+    if (!product || product.userId !== userId) {
       throwObject("Product not found", 404);
     }
 
@@ -50,7 +61,7 @@ export const saleService = {
 
     const total = input.quantity * input.unitPrice;
 
-    const sale = saleModel.create({
+    const sale = await saleModel.create({
       productId: input.productId,
       quantity: input.quantity,
       unitPrice: input.unitPrice,
@@ -58,24 +69,30 @@ export const saleService = {
       customer: input.customer,
     });
 
-    productModel.adjustStock(input.productId, -input.quantity);
+    await productModel.adjustStock(input.productId, -input.quantity);
 
     return mapToSaleResponse(sale);
   },
 
-  remove(id: string): void {
-    const sale = saleModel.findById(id);
+  async remove(id: string, userId: string): Promise<void> {
+    const sale = await saleModel.findById(id);
 
     if (!sale) {
       throwObject("Sale not found", 404);
     }
 
-    productModel.adjustStock(sale.productId, sale.quantity);
-    saleModel.remove(id);
+    const product = await productModel.findById(sale.productId);
+    if (!product || product.userId !== userId) {
+      throwObject("Sale not found", 404);
+    }
+
+    await productModel.adjustStock(sale.productId, sale.quantity);
+    await saleModel.remove(id);
   },
 
-  getStats(): SalesStatsResponseDto {
-    const sales = saleModel.findAll();
+  async getStats(userId: string): Promise<SalesStatsResponseDto> {
+    const userProductIds = await getUserProductIds(userId);
+    const sales = (await saleModel.findAll()).filter((s) => userProductIds.includes(s.productId));
 
     if (sales.length === 0) {
       return {

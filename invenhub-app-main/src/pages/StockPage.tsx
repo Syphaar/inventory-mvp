@@ -1,4 +1,4 @@
-import { useStore, products as productsApi } from "@/lib/store";
+import { useProducts, useAdjustStock, useSetStock } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,16 +8,23 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export function StockPage() {
-  const products = useStore((state) => state.products);
+  const { data: products = [], isLoading } = useProducts();
+  const adjustStock = useAdjustStock();
+  const setStock = useSetStock();
   const [edits, setEdits] = useState<Record<string, string>>({});
 
-  const setLevel = (id: string) => {
+  const handleAdjust = async (id: string, delta: number) => {
+    await adjustStock.mutateAsync({ id, delta });
+    toast.success(delta > 0 ? "Stock increased" : "Stock decreased");
+  };
+
+  const handleSet = async (id: string) => {
     const val = Number(edits[id]);
     if (Number.isNaN(val) || val < 0) {
       toast.error("Enter a valid stock value");
       return;
     }
-    productsApi.setStock(id, val);
+    await setStock.mutateAsync({ id, quantity: val });
     toast.success("Stock updated");
     setEdits((prev) => {
       const next = { ...prev };
@@ -26,7 +33,9 @@ export function StockPage() {
     });
   };
 
-  const lowStock = products.filter((product) => product.stock <= product.lowStockThreshold);
+  const lowStock = products.filter((product: any) => product.stock <= product.lowStockThreshold);
+
+  if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading stock...</div>;
 
   return (
     <div className="space-y-4">
@@ -58,7 +67,7 @@ export function StockPage() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((product) => {
+                {products.map((product: any) => {
                   const low = product.stock <= product.lowStockThreshold;
                   return (
                     <tr key={product.id} className="border-b last:border-0 hover:bg-muted/40">
@@ -81,14 +90,14 @@ export function StockPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => productsApi.adjustStock(product.id, -1)}
+                          onClick={() => handleAdjust(product.id, -1)}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => productsApi.adjustStock(product.id, 1)}
+                          onClick={() => handleAdjust(product.id, 1)}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -108,7 +117,7 @@ export function StockPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setLevel(product.id)}
+                            onClick={() => handleSet(product.id)}
                             disabled={edits[product.id] === undefined}
                           >
                             Save

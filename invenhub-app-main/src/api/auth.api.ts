@@ -1,39 +1,34 @@
 import apiClient from "./apiClient";
-import type { LoginRequest, RegisterRequest, AuthResponse, User } from "@/types/auth.types";
+import type { ApiResponse, AuthResponseData, User } from "@/types/auth.types";
 
-export const login = async (email: string, password: string): Promise<AuthResponse> => {
-  const response = await apiClient.post<AuthResponse>("/auth/login", {
+export const login = async (email: string, password: string): Promise<AuthResponseData> => {
+  const response = await apiClient.post<ApiResponse<AuthResponseData>>("/auth/login", {
     email,
     password,
-  } as LoginRequest);
-  return response.data;
+  });
+  return response.data.data;
 };
 
 export const register = async (
   name: string,
   email: string,
   password: string,
-): Promise<AuthResponse> => {
-  const response = await apiClient.post<AuthResponse>("/auth/register", {
+): Promise<AuthResponseData> => {
+  const response = await apiClient.post<ApiResponse<AuthResponseData>>("/auth/register", {
     name,
     email,
     password,
-  } as RegisterRequest);
-  return response.data;
+  });
+  return response.data.data;
 };
 
 export const getCurrentUser = async (): Promise<User> => {
-  const response = await apiClient.get<User>("/auth/me");
-  return response.data;
-};
-
-export const logout = async (): Promise<void> => {
-  await apiClient.post("/auth/logout");
+  const response = await apiClient.get<ApiResponse<User>>("/auth/me");
+  return response.data.data;
 };
 
 export const authApi = {
   login,
   register,
   getCurrentUser,
-  logout,
 };

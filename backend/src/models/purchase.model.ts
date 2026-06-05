@@ -1,50 +1,69 @@
+import { prisma } from "../lib/prisma";
 import type { Purchase } from "../types";
-import { generateId } from "../utils/generate-id";
-
-const purchases: Purchase[] = [];
 
 export const purchaseModel = {
-  findAll(): Purchase[] {
-    return purchases;
+  async findAll(): Promise<Purchase[]> {
+    const purchases = await prisma.purchase.findMany();
+    return purchases.map(toPurchase);
   },
 
-  findByProductId(productId: string): Purchase[] {
-    return purchases.filter((purchase) => purchase.productId === productId);
+  async findByProductId(productId: string): Promise<Purchase[]> {
+    const purchases = await prisma.purchase.findMany({ where: { productId } });
+    return purchases.map(toPurchase);
   },
 
-  findById(id: string): Purchase | undefined {
-    return purchases.find((purchase) => purchase.id === id);
+  async findById(id: string): Promise<Purchase | undefined> {
+    const purchase = await prisma.purchase.findUnique({ where: { id } });
+    return purchase ? toPurchase(purchase) : undefined;
   },
 
-  create(data: {
+  async create(data: {
     productId: string;
     quantity: number;
     unitCost: number;
     total: number;
     supplier: string;
-  }): Purchase {
-    const newPurchase: Purchase = {
-      id: generateId(),
-      productId: data.productId,
-      quantity: data.quantity,
-      unitCost: data.unitCost,
-      total: data.total,
-      supplier: data.supplier,
-      date: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-    };
-    purchases.push(newPurchase);
-    return newPurchase;
+    date?: string;
+  }): Promise<Purchase> {
+    const purchase = await prisma.purchase.create({
+      data: {
+        productId: data.productId,
+        quantity: data.quantity,
+        unitCost: data.unitCost,
+        total: data.total,
+        supplier: data.supplier,
+        date: data.date ? new Date(data.date) : new Date(),
+      },
+    });
+    return toPurchase(purchase);
   },
 
-  remove(id: string): boolean {
-    const index = purchases.findIndex((purchase) => purchase.id === id);
-    if (index === -1) return false;
-    purchases.splice(index, 1);
-    return true;
+  async remove(id: string): Promise<boolean> {
+    try {
+      await prisma.purchase.delete({ where: { id } });
+      return true;
+    } catch {
+      return false;
+    }
   },
 
-  clear(): void {
-    purchases.length = 0;
+  async clear(): Promise<void> {
+    await prisma.purchase.deleteMany();
   },
 };
+
+function toPurchase(p: {
+  id: string; productId: string; quantity: number; unitCost: number;
+  total: number; supplier: string; date: Date; createdAt: Date;
+}): Purchase {
+  return {
+    id: p.id,
+    productId: p.productId,
+    quantity: p.quantity,
+    unitCost: p.unitCost,
+    total: p.total,
+    supplier: p.supplier,
+    date: p.date.toISOString(),
+    createdAt: p.createdAt.toISOString(),
+  };
+}

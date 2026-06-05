@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useStore, purchases as purchasesApi } from "@/lib/store";
+import { usePurchases, useProducts, useDeletePurchase } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
@@ -8,16 +8,17 @@ import { formatCurrency, formatDateTime } from "@/lib/format";
 import { toast } from "sonner";
 
 export function PurchasesPage() {
-  const purchases = useStore((state) => state.purchases);
-  const products = useStore((state) => state.products);
+  const { data: purchases = [] } = usePurchases();
+  const { data: products = [] } = useProducts();
+  const deletePurchase = useDeletePurchase();
   const [open, setOpen] = useState(false);
 
-  const total = purchases.reduce((sum, purchase) => sum + purchase.total, 0);
-  const units = purchases.reduce((sum, purchase) => sum + purchase.quantity, 0);
+  const total = purchases.reduce((sum: number, p: any) => sum + p.total, 0);
+  const units = purchases.reduce((sum: number, p: any) => sum + p.quantity, 0);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Delete this purchase? Stock will be reduced accordingly.")) {
-      purchasesApi.remove(id);
+      await deletePurchase.mutateAsync(id);
       toast.success("Purchase deleted · stock reduced");
     }
   };
@@ -61,12 +62,12 @@ export function PurchasesPage() {
                 </tr>
               </thead>
               <tbody>
-                {purchases.map((pu) => {
-                  const product = products.find((product) => product.id === pu.productId);
+                {purchases.map((pu: any) => {
+                  const product = products.find((p: any) => p.id === pu.productId);
                   return (
                     <tr key={pu.id} className="border-b last:border-0 hover:bg-muted/40">
                       <td className="px-4 py-3">{formatDateTime(pu.date)}</td>
-                      <td className="px-4 py-3 font-medium">{product?.name ?? "—"}</td>
+                      <td className="px-4 py-3 font-medium">{product?.name ?? "\u2014"}</td>
                       <td className="px-4 py-3">{pu.supplier}</td>
                       <td className="px-4 py-3 text-right">{pu.quantity}</td>
                       <td className="px-4 py-3 text-right">{formatCurrency(pu.unitCost)}</td>

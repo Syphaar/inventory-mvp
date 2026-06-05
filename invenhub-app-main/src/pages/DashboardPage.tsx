@@ -1,4 +1,4 @@
-import { useStore } from "@/lib/store";
+import { useProducts, useSales } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatNumber, formatDateTime } from "@/lib/format";
 import { Package, DollarSign, ShoppingCart, AlertTriangle } from "lucide-react";
@@ -17,13 +17,13 @@ import {
 import { useMemo } from "react";
 
 export function DashboardPage() {
-  const products = useStore((state) => state.products);
-  const sales = useStore((state) => state.sales);
+  const { data: products = [] } = useProducts();
+  const { data: sales = [] } = useSales();
 
   const totalProducts = products.length;
-  const stockValue = products.reduce((sum, product) => sum + product.stock * product.cost, 0);
-  const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
-  const lowStock = products.filter((product) => product.stock <= product.lowStockThreshold).length;
+  const stockValue = products.reduce((sum: number, product: any) => sum + product.stock * product.cost, 0);
+  const totalSales = sales.reduce((sum: number, sale: any) => sum + sale.total, 0);
+  const lowStock = products.filter((product: any) => product.stock <= product.lowStockThreshold).length;
 
   const salesByDay = useMemo(() => {
     const map = new Map<string, number>();
@@ -32,7 +32,7 @@ export function DashboardPage() {
       const key = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       map.set(key, 0);
     }
-    sales.forEach((sale) => {
+    sales.forEach((sale: any) => {
       const key = new Date(sale.date).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -42,8 +42,8 @@ export function DashboardPage() {
     return Array.from(map, ([day, value]) => ({ day, value }));
   }, [sales]);
 
-  const stockData = products.map((product) => ({
-    name: product.name.length > 14 ? product.name.slice(0, 12) + "…" : product.name,
+  const stockData = products.map((product: any) => ({
+    name: product.name.length > 14 ? product.name.slice(0, 12) + "..." : product.name,
     stock: product.stock,
     low: product.stock <= product.lowStockThreshold,
   }));
@@ -143,7 +143,7 @@ export function DashboardPage() {
                   }}
                 />
                 <Bar dataKey="stock" radius={[6, 6, 0, 0]}>
-                  {stockData.map((item, index) => (
+                  {stockData.map((item: any, index: number) => (
                     <Cell key={index} fill={item.low ? "var(--chart-5)" : "var(--chart-2)"} />
                   ))}
                 </Bar>
@@ -170,12 +170,12 @@ export function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {sales.slice(0, 8).map((sale) => {
-                  const product = products.find((product) => product.id === sale.productId);
+                {sales.slice(0, 8).map((sale: any) => {
+                  const product = products.find((p: any) => p.id === sale.productId);
                   return (
                     <tr key={sale.id} className="border-b last:border-0">
                       <td className="py-2.5">{formatDateTime(sale.date)}</td>
-                      <td className="py-2.5">{product?.name ?? "—"}</td>
+                      <td className="py-2.5">{product?.name ?? "\u2014"}</td>
                       <td className="py-2.5">{sale.customer}</td>
                       <td className="py-2.5 text-right">{sale.quantity}</td>
                       <td className="py-2.5 text-right font-medium">

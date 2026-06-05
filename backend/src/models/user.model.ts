@@ -1,34 +1,38 @@
+import { prisma } from "../lib/prisma";
 import type { User } from "../types";
-import { generateId } from "../utils/generate-id";
-
-const users: User[] = [];
 
 export const userModel = {
-  findAll(): User[] {
-    return users;
+  async findAll(): Promise<User[]> {
+    const users = await prisma.user.findMany();
+    return users.map(toUser);
   },
 
-  findById(id: string): User | undefined {
-    return users.find((user) => user.id === id);
+  async findById(id: string): Promise<User | undefined> {
+    const user = await prisma.user.findUnique({ where: { id } });
+    return user ? toUser(user) : undefined;
   },
 
-  findByEmail(email: string): User | undefined {
-    return users.find((user) => user.email === email);
+  async findByEmail(email: string): Promise<User | undefined> {
+    const user = await prisma.user.findUnique({ where: { email } });
+    return user ? toUser(user) : undefined;
   },
 
-  create(data: { name: string; email: string; password: string }): User {
-    const newUser: User = {
-      id: generateId(),
-      name: data.name,
-      email: data.email,
-      password: data.password,
-      createdAt: new Date().toISOString(),
-    };
-    users.push(newUser);
-    return newUser;
+  async create(data: { name: string; email: string; password: string }): Promise<User> {
+    const user = await prisma.user.create({ data });
+    return toUser(user);
   },
 
-  clear(): void {
-    users.length = 0;
+  async clear(): Promise<void> {
+    await prisma.user.deleteMany();
   },
 };
+
+function toUser(u: { id: string; name: string; email: string; password: string; createdAt: Date }): User {
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    password: u.password,
+    createdAt: u.createdAt.toISOString(),
+  };
+}

@@ -9,13 +9,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { products, type Product } from "@/lib/store";
+import { useCreateProduct, useUpdateProduct } from "@/lib/store";
 import { toast } from "sonner";
 
 type Props = {
   open: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  product?: Product | null;
+  product?: any;
 };
 
 const empty = {
@@ -30,6 +30,8 @@ const empty = {
 
 export function ProductDialog({ open, onOpenChange, product }: Props) {
   const [form, setForm] = useState(empty);
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
 
   useEffect(() => {
     if (open) {
@@ -37,20 +39,24 @@ export function ProductDialog({ open, onOpenChange, product }: Props) {
     }
   }, [open, product]);
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.name || !form.sku) {
       toast.error("Name and SKU are required");
       return;
     }
-    if (product) {
-      products.update(product.id, form);
-      toast.success("Product updated");
-    } else {
-      products.create(form);
-      toast.success("Product created");
+    try {
+      if (product) {
+        await updateProduct.mutateAsync({ id: product.id, data: form });
+        toast.success("Product updated");
+      } else {
+        await createProduct.mutateAsync(form);
+        toast.success("Product created");
+      }
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Operation failed");
     }
-    onOpenChange(false);
   };
 
   return (

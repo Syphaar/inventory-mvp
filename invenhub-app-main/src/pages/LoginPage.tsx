@@ -10,15 +10,15 @@ import { Link } from "react-router-dom";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("demo@inventory.app");
-  const [password, setPassword] = useState("demo1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
     try {
-      auth.login(email, password);
+      await auth.login(email, password);
       toast.success("Welcome back");
       navigate("/dashboard");
     } catch (err) {

@@ -5,7 +5,7 @@ import type { AuthResponseDto } from "../dtos/auth.dto";
 
 export const authService = {
   async login(email: string, password: string): Promise<AuthResponseDto> {
-    const user = userModel.findByEmail(email);
+    const user = await userModel.findByEmail(email);
 
     if (!user) {
       throwObject("Invalid email or password", 401);
@@ -30,14 +30,14 @@ export const authService = {
   },
 
   async register(name: string, email: string, password: string): Promise<AuthResponseDto> {
-    const existingUser = userModel.findByEmail(email);
+    const existingUser = await userModel.findByEmail(email);
 
     if (existingUser) {
       throwObject("A user with this email already exists", 409);
     }
 
     const hashedPassword = await hashPassword(password);
-    const user = userModel.create({ name, email, password: hashedPassword });
+    const user = await userModel.create({ name, email, password: hashedPassword });
     const accessToken = generateToken({ userId: user.id, email: user.email });
 
     return {
@@ -50,8 +50,8 @@ export const authService = {
     };
   },
 
-  getProfile(userId: string) {
-    const user = userModel.findById(userId);
+  async getProfile(userId: string) {
+    const user = await userModel.findById(userId);
 
     if (!user) {
       throwObject("User not found", 404);

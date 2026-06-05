@@ -1,4 +1,4 @@
-export type { User, LoginRequest, RegisterRequest, AuthResponse } from "./auth.types";
+export type { User, LoginRequest, RegisterRequest, ApiResponse } from "./auth.types";
 
 export type {
   Product,

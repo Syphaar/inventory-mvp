@@ -10,7 +10,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { auth, useStore } from "@/lib/store";
+import { auth, useStoreAuth } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +23,7 @@ const NAV = [
 ] as const;
 
 export function AppShell() {
-  const user = useStore((state) => state.user);
+  const user = useStoreAuth((state) => state.user);
   const navigate = useNavigate();
   const pathname = useLocation().pathname;
   const [open, setOpen] = useState(false);
@@ -74,7 +74,7 @@ export function AppShell() {
           })}
         </nav>
         <div className="p-3 border-t border-sidebar-border text-xs opacity-70">
-          v1.0 · Dummy data
+          v1.0 · Backend API
         </div>
       </aside>
 

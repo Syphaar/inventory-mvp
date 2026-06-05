@@ -1,440 +1,269 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
+import { productApi } from "@/api/product.api";
+import { saleApi } from "@/api/sale.api";
+import { purchaseApi } from "@/api/purchase.api";
+import { stockApi } from "@/api/stock.api";
+import { authApi } from "@/api/auth.api";
+import { queryClient } from "./query-client";
+import type { Product } from "@/types/product.types";
+import type { Sale, CreateSaleRequest } from "@/types/sale.types";
+import type { Purchase, CreatePurchaseRequest } from "@/types/purchase.types";
+import type { User } from "@/types/auth.types";
 
-export type Product = {
-  id: string;
-  sku: string;
-  name: string;
-  category: string;
-  price: number;
-  cost: number;
-  stock: number;
-  lowStockThreshold: number;
-};
+// ----- Auth state (synchronous, backed by localStorage like before) -----
 
-export type Sale = {
-  id: string;
-  productId: string;
-  quantity: number;
-  unitPrice: number;
-  total: number;
-  customer: string;
-  date: string;
-};
-
-export type Purchase = {
-  id: string;
-  productId: string;
-  quantity: number;
-  unitCost: number;
-  total: number;
-  supplier: string;
-  date: string;
-};
-
-export type User = { id: string; name: string; email: string };
-
-type State = {
+type AuthState = {
   user: User | null;
   token: string | null;
-  products: Product[];
-  sales: Sale[];
-  purchases: Purchase[];
 };
 
-const STORAGE_KEY = "inventory_mvp_pro_state_v1";
+let authState: AuthState = loadAuth();
+const authListeners = new Set<() => void>();
 
-const seedProducts: Product[] = [
-  {
-    id: "p1",
-    sku: "ELC-001",
-    name: "Wireless Headphones",
-    category: "Electronics",
-    price: 129,
-    cost: 65,
-    stock: 48,
-    lowStockThreshold: 10,
-  },
-  {
-    id: "p2",
-    sku: "ELC-002",
-    name: "Mechanical Keyboard",
-    category: "Electronics",
-    price: 159,
-    cost: 80,
-    stock: 7,
-    lowStockThreshold: 10,
-  },
-  {
-    id: "p3",
-    sku: "ELC-003",
-    name: "4K Webcam",
-    category: "Electronics",
-    price: 89,
-    cost: 40,
-    stock: 23,
-    lowStockThreshold: 8,
-  },
-  {
-    id: "p4",
-    sku: "OFC-101",
-    name: "Standing Desk",
-    category: "Office",
-    price: 449,
-    cost: 230,
-    stock: 12,
-    lowStockThreshold: 5,
-  },
-  {
-    id: "p5",
-    sku: "OFC-102",
-    name: "Ergonomic Chair",
-    category: "Office",
-    price: 329,
-    cost: 180,
-    stock: 4,
-    lowStockThreshold: 6,
-  },
-  {
-    id: "p6",
-    sku: "ACC-201",
-    name: "USB-C Hub",
-    category: "Accessories",
-    price: 49,
-    cost: 18,
-    stock: 86,
-    lowStockThreshold: 20,
-  },
-  {
-    id: "p7",
-    sku: "ACC-202",
-    name: "Laptop Stand",
-    category: "Accessories",
-    price: 39,
-    cost: 14,
-    stock: 31,
-    lowStockThreshold: 15,
-  },
-  {
-    id: "p8",
-    sku: "ELC-004",
-    name: "Noise Cancelling Earbuds",
-    category: "Electronics",
-    price: 199,
-    cost: 95,
-    stock: 19,
-    lowStockThreshold: 8,
-  },
-];
-
-const daysAgo = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
-
-const seedSales: Sale[] = [
-  {
-    id: "s1",
-    productId: "p1",
-    quantity: 2,
-    unitPrice: 129,
-    total: 258,
-    customer: "Acme Corp",
-    date: daysAgo(1),
-  },
-  {
-    id: "s2",
-    productId: "p6",
-    quantity: 5,
-    unitPrice: 49,
-    total: 245,
-    customer: "Globex",
-    date: daysAgo(2),
-  },
-  {
-    id: "s3",
-    productId: "p4",
-    quantity: 1,
-    unitPrice: 449,
-    total: 449,
-    customer: "Initech",
-    date: daysAgo(3),
-  },
-  {
-    id: "s4",
-    productId: "p3",
-    quantity: 3,
-    unitPrice: 89,
-    total: 267,
-    customer: "Hooli",
-    date: daysAgo(4),
-  },
-  {
-    id: "s5",
-    productId: "p8",
-    quantity: 2,
-    unitPrice: 199,
-    total: 398,
-    customer: "Stark Industries",
-    date: daysAgo(5),
-  },
-  {
-    id: "s6",
-    productId: "p2",
-    quantity: 1,
-    unitPrice: 159,
-    total: 159,
-    customer: "Wayne Enterprises",
-    date: daysAgo(6),
-  },
-  {
-    id: "s7",
-    productId: "p7",
-    quantity: 4,
-    unitPrice: 39,
-    total: 156,
-    customer: "Umbrella",
-    date: daysAgo(7),
-  },
-  {
-    id: "s8",
-    productId: "p1",
-    quantity: 1,
-    unitPrice: 129,
-    total: 129,
-    customer: "Pied Piper",
-    date: daysAgo(8),
-  },
-];
-
-const seedPurchases: Purchase[] = [
-  {
-    id: "pu1",
-    productId: "p2",
-    quantity: 10,
-    unitCost: 80,
-    total: 800,
-    supplier: "KeyTech Co.",
-    date: daysAgo(2),
-  },
-  {
-    id: "pu2",
-    productId: "p6",
-    quantity: 50,
-    unitCost: 18,
-    total: 900,
-    supplier: "HubWorks",
-    date: daysAgo(5),
-  },
-  {
-    id: "pu3",
-    productId: "p4",
-    quantity: 8,
-    unitCost: 230,
-    total: 1840,
-    supplier: "DeskMakers",
-    date: daysAgo(9),
-  },
-];
-
-function load(): State {
-  if (typeof window === "undefined") {
-    return {
-      user: null,
-      token: null,
-      products: seedProducts,
-      sales: seedSales,
-      purchases: seedPurchases,
-    };
-  }
+function loadAuth(): AuthState {
+  if (typeof window === "undefined") return { user: null, token: null };
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    const token = localStorage.getItem("auth_token");
+    const raw = localStorage.getItem("auth_user");
+    return { user: raw ? JSON.parse(raw) : null, token };
   } catch {
-    // ignore parse errors and fallback to initial state
-    // Ignore invalid localStorage data
+    return { user: null, token: null };
   }
-  const initial: State = {
-    user: null,
-    token: null,
-    products: seedProducts,
-    sales: seedSales,
-    purchases: seedPurchases,
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
-  return initial;
 }
 
-let state: State = load();
-const listeners = new Set<() => void>();
-
-function set(updater: (prevState: State) => State) {
-  state = updater(state);
+function saveAuth(user: User | null, token: string | null) {
+  authState = { user, token };
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (token) localStorage.setItem("auth_token", token);
+    else localStorage.removeItem("auth_token");
+    if (user) localStorage.setItem("auth_user", JSON.stringify(user));
+    else localStorage.removeItem("auth_user");
   }
-  listeners.forEach((listener) => listener());
+  authListeners.forEach((fn) => fn());
 }
 
-const subscribe = (listener: () => void) => {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-};
+function subscribeAuth(listener: () => void) {
+  authListeners.add(listener);
+  return () => authListeners.delete(listener);
+}
 
-const getSnapshot = () => state;
-const getServerSnapshot = () => state;
+function getAuthSnapshot() {
+  return authState;
+}
 
-export function useStore<T>(selector: (currentState: State) => T): T {
+export function useStoreAuth<T>(selector: (s: AuthState) => T): T {
   return useSyncExternalStore(
-    subscribe,
-    () => selector(state),
-    () => selector(state),
+    subscribeAuth,
+    () => selector(authState),
+    () => selector(authState),
   );
 }
 
-const uid = () => Math.random().toString(36).slice(2, 10);
+// ----- Data hooks (React Query) -----
 
-// ----- Auth (mock JWT) -----
+const STALE = 1000 * 30;
+
+export function useProducts() {
+  return useQuery({
+    queryKey: ["products"],
+    queryFn: productApi.getAll,
+    staleTime: STALE,
+  });
+}
+
+export function useSales() {
+  return useQuery({
+    queryKey: ["sales"],
+    queryFn: saleApi.getAll,
+    staleTime: STALE,
+  });
+}
+
+export function usePurchases() {
+  return useQuery({
+    queryKey: ["purchases"],
+    queryFn: purchaseApi.getAll,
+    staleTime: STALE,
+  });
+}
+
+export function useStockItems() {
+  return useQuery({
+    queryKey: ["stock"],
+    queryFn: stockApi.getAll,
+    staleTime: STALE,
+  });
+}
+
+// ----- Mutations -----
+
+export function useCreateProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<Product, "id" | "userId" | "createdAt" | "updatedAt">) =>
+      productApi.create(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+  });
+}
+
+export function useUpdateProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) =>
+      productApi.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+  });
+}
+
+export function useDeleteProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => productApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+  });
+}
+
+export function useCreateSale() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateSaleRequest) => saleApi.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["stock"] });
+    },
+  });
+}
+
+export function useDeleteSale() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => saleApi.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["stock"] });
+    },
+  });
+}
+
+export function useCreatePurchase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreatePurchaseRequest) => purchaseApi.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["purchases"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["stock"] });
+    },
+  });
+}
+
+export function useDeletePurchase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => purchaseApi.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["purchases"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["stock"] });
+    },
+  });
+}
+
+export function useAdjustStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, delta }: { id: string; delta: number }) =>
+      stockApi.adjustStock(id, { delta }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["stock"] });
+    },
+  });
+}
+
+export function useSetStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, quantity }: { id: string; quantity: number }) =>
+      stockApi.setStock(id, { quantity }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["stock"] });
+    },
+  });
+}
+
+// ----- Auth API -----
+
 export const auth = {
-  login(email: string, password: string) {
-    if (!email || !password) throw new Error("Email and password are required");
-    const user: User = { id: uid(), name: email.split("@")[0] || "User", email };
-    const token = "mock." + btoa(email) + "." + uid();
-    set((prevState) => ({ ...prevState, user, token }));
-    return user;
+  async login(email: string, password: string) {
+    try {
+      const result = await authApi.login(email, password);
+      saveAuth(result.user, result.accessToken);
+      queryClient.clear();
+      return result.user;
+    } catch (err: any) {
+      throw new Error(err?.response?.data?.message || err.message || "Login failed");
+    }
   },
-  register(name: string, email: string, password: string) {
-    if (!name || !email || !password) throw new Error("All fields are required");
-    const user: User = { id: uid(), name, email };
-    const token = "mock." + btoa(email) + "." + uid();
-    set((prevState) => ({ ...prevState, user, token }));
-    return user;
+  async register(name: string, email: string, password: string) {
+    try {
+      const result = await authApi.register(name, email, password);
+      saveAuth(result.user, result.accessToken);
+      queryClient.clear();
+      return result.user;
+    } catch (err: any) {
+      throw new Error(err?.response?.data?.message || err.message || "Registration failed");
+    }
   },
   logout() {
-    set((prevState) => ({ ...prevState, user: null, token: null }));
+    saveAuth(null, null);
+    queryClient.clear();
   },
   isAuthed() {
-    return !!state.token;
+    return !!authState.token;
   },
 };
 
-// ----- Products -----
+export type { Product } from "@/types/product.types";
+export type { Sale } from "@/types/sale.types";
+export type { Purchase } from "@/types/purchase.types";
+
 export const products = {
-  create(input: Omit<Product, "id">) {
-    const product: Product = { ...input, id: uid() };
-    set((prevState) => ({ ...prevState, products: [product, ...prevState.products] }));
-    return product;
+  create(input: Omit<Product, "id" | "userId" | "createdAt" | "updatedAt">) {
+    throw new Error("Use useCreateProduct mutation hook instead");
   },
   update(id: string, patch: Partial<Omit<Product, "id">>) {
-    set((prevState) => ({
-      ...prevState,
-      products: prevState.products.map((product) =>
-        product.id === id ? { ...product, ...patch } : product,
-      ),
-    }));
+    throw new Error("Use useUpdateProduct mutation hook instead");
   },
   remove(id: string) {
-    set((prevState) => ({
-      ...prevState,
-      products: prevState.products.filter((product) => product.id !== id),
-      sales: prevState.sales.filter((sale) => sale.productId !== id),
-      purchases: prevState.purchases.filter((purchase) => purchase.productId !== id),
-    }));
+    throw new Error("Use useDeleteProduct mutation hook instead");
   },
   adjustStock(id: string, delta: number) {
-    set((prevState) => ({
-      ...prevState,
-      products: prevState.products.map((product) =>
-        product.id === id ? { ...product, stock: Math.max(0, product.stock + delta) } : product,
-      ),
-    }));
+    throw new Error("Use useAdjustStock mutation hook instead");
   },
   setStock(id: string, value: number) {
-    set((prevState) => ({
-      ...prevState,
-      products: prevState.products.map((product) =>
-        product.id === id ? { ...product, stock: Math.max(0, value) } : product,
-      ),
-    }));
+    throw new Error("Use useSetStock mutation hook instead");
   },
 };
 
-// ----- Sales (auto deduct stock) -----
 export const sales = {
   create(input: { productId: string; quantity: number; unitPrice: number; customer: string }) {
-    const prod = state.products.find((product) => product.id === input.productId);
-    if (!prod) throw new Error("Product not found");
-    if (input.quantity <= 0) throw new Error("Quantity must be positive");
-    if (prod.stock < input.quantity)
-      throw new Error(`Insufficient stock (${prod.stock} available)`);
-    const sale: Sale = {
-      id: uid(),
-      productId: input.productId,
-      quantity: input.quantity,
-      unitPrice: input.unitPrice,
-      total: input.quantity * input.unitPrice,
-      customer: input.customer || "Walk-in",
-      date: new Date().toISOString(),
-    };
-    set((prevState) => ({
-      ...prevState,
-      sales: [sale, ...prevState.sales],
-      products: prevState.products.map((product) =>
-        product.id === input.productId
-          ? { ...product, stock: product.stock - input.quantity }
-          : product,
-      ),
-    }));
-    return sale;
+    throw new Error("Use useCreateSale mutation hook instead");
   },
   remove(id: string) {
-    const sale = state.sales.find((saleItem) => saleItem.id === id);
-    if (!sale) return;
-    set((prevState) => ({
-      ...prevState,
-      sales: prevState.sales.filter((saleItem) => saleItem.id !== id),
-      products: prevState.products.map((product) =>
-        product.id === sale.productId
-          ? { ...product, stock: product.stock + sale.quantity }
-          : product,
-      ),
-    }));
+    throw new Error("Use useDeleteSale mutation hook instead");
   },
 };
 
-// ----- Purchases (auto increase stock) -----
 export const purchases = {
   create(input: { productId: string; quantity: number; unitCost: number; supplier: string }) {
-    const prod = state.products.find((product) => product.id === input.productId);
-    if (!prod) throw new Error("Product not found");
-    if (input.quantity <= 0) throw new Error("Quantity must be positive");
-    const purchase: Purchase = {
-      id: uid(),
-      productId: input.productId,
-      quantity: input.quantity,
-      unitCost: input.unitCost,
-      total: input.quantity * input.unitCost,
-      supplier: input.supplier || "Unknown",
-      date: new Date().toISOString(),
-    };
-    set((prevState) => ({
-      ...prevState,
-      purchases: [purchase, ...prevState.purchases],
-      products: prevState.products.map((product) =>
-        product.id === input.productId
-          ? { ...product, stock: product.stock + input.quantity }
-          : product,
-      ),
-    }));
-    return purchase;
+    throw new Error("Use useCreatePurchase mutation hook instead");
   },
   remove(id: string) {
-    const purchase = state.purchases.find((purchaseItem) => purchaseItem.id === id);
-    if (!purchase) return;
-    set((prevState) => ({
-      ...prevState,
-      purchases: prevState.purchases.filter((purchaseItem) => purchaseItem.id !== id),
-      products: prevState.products.map((product) =>
-        product.id === purchase.productId
-          ? { ...product, stock: Math.max(0, product.stock - purchase.quantity) }
-          : product,
-      ),
-    }));
+    throw new Error("Use useDeletePurchase mutation hook instead");
   },
 };

@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { purchases, useStore } from "@/lib/store";
+import { useProducts, useCreatePurchase } from "@/lib/store";
 import { toast } from "sonner";
 
 export function PurchaseDialog({
@@ -26,7 +26,8 @@ export function PurchaseDialog({
   open: boolean;
   onOpenChange: (isOpen: boolean) => void;
 }) {
-  const productList = useStore((state) => state.products);
+  const { data: productList = [] } = useProducts();
+  const createPurchase = useCreatePurchase();
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [unitCost, setUnitCost] = useState(0);
@@ -43,18 +44,18 @@ export function PurchaseDialog({
   }, [open, productList]);
 
   useEffect(() => {
-    const product = productList.find((product) => product.id === productId);
+    const product = productList.find((p: any) => p.id === productId);
     if (product) setUnitCost(product.cost);
   }, [productId, productList]);
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      purchases.create({ productId, quantity, unitCost, supplier });
+      await createPurchase.mutateAsync({ productId, quantity, unitCost, supplier });
       toast.success("Purchase recorded · stock increased");
       onOpenChange(false);
-    } catch (err) {
-      toast.error((err as Error).message);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || (err as Error).message);
     }
   };
 
@@ -72,7 +73,7 @@ export function PurchaseDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {productList.map((product) => (
+                {productList.map((product: any) => (
                   <SelectItem key={product.id} value={product.id}>
                     {product.name}
                   </SelectItem>

@@ -3,10 +3,11 @@ import { stockService } from "../services/stock.service";
 import { sendSuccess, sendPaginated } from "../utils/api-response";
 
 export const stockController = {
-  getAll(request: Request, response: Response, next: NextFunction): void {
+  async getAll(request: Request, response: Response, next: NextFunction): Promise<void> {
     try {
+      const userId = (request as any).user.userId;
       const lowStockOnly = request.query.low === "true";
-      const result = stockService.getAll(lowStockOnly);
+      const result = await stockService.getAll(lowStockOnly, userId);
       sendPaginated(response, result.data, result.total, {
         extra: { lowStockCount: result.lowStockCount },
       });
@@ -15,18 +16,20 @@ export const stockController = {
     }
   },
 
-  adjustStock(request: Request, response: Response, next: NextFunction): void {
+  async adjustStock(request: Request, response: Response, next: NextFunction): Promise<void> {
     try {
-      const stockItem = stockService.adjustStock(request.params.productId, request.body.delta);
+      const userId = (request as any).user.userId;
+      const stockItem = await stockService.adjustStock(request.params.productId, request.body.delta, userId);
       sendSuccess(response, stockItem, { message: "Stock adjusted" });
     } catch (error) {
       next(error);
     }
   },
 
-  setStock(request: Request, response: Response, next: NextFunction): void {
+  async setStock(request: Request, response: Response, next: NextFunction): Promise<void> {
     try {
-      const stockItem = stockService.setStock(request.params.productId, request.body.quantity);
+      const userId = (request as any).user.userId;
+      const stockItem = await stockService.setStock(request.params.productId, request.body.quantity, userId);
       sendSuccess(response, stockItem, { message: "Stock updated" });
     } catch (error) {
       next(error);

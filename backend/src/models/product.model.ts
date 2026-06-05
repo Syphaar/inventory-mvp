@@ -1,18 +1,23 @@
+import { prisma } from "../lib/prisma";
 import type { Product } from "../types";
-import { generateId } from "../utils/generate-id";
-
-const products: Product[] = [];
 
 export const productModel = {
-  findAll(): Product[] {
-    return products;
+  async findAll(): Promise<Product[]> {
+    const products = await prisma.product.findMany();
+    return products.map(toProduct);
   },
 
-  findById(id: string): Product | undefined {
-    return products.find((product) => product.id === id);
+  async findById(id: string): Promise<Product | undefined> {
+    const product = await prisma.product.findUnique({ where: { id } });
+    return product ? toProduct(product) : undefined;
   },
 
-  create(data: {
+  async findByUserId(userId: string): Promise<Product[]> {
+    const products = await prisma.product.findMany({ where: { userId } });
+    return products.map(toProduct);
+  },
+
+  async create(data: {
     sku: string;
     name: string;
     category: string;
@@ -21,26 +26,23 @@ export const productModel = {
     stock: number;
     lowStockThreshold: number;
     userId?: string;
-  }): Product {
-    const now = new Date().toISOString();
-    const newProduct: Product = {
-      id: generateId(),
-      userId: data.userId ?? "",
-      sku: data.sku,
-      name: data.name,
-      category: data.category,
-      price: data.price,
-      cost: data.cost,
-      stock: data.stock,
-      lowStockThreshold: data.lowStockThreshold,
-      createdAt: now,
-      updatedAt: now,
-    };
-    products.push(newProduct);
-    return newProduct;
+  }): Promise<Product> {
+    const product = await prisma.product.create({
+      data: {
+        sku: data.sku,
+        name: data.name,
+        category: data.category,
+        price: data.price,
+        cost: data.cost,
+        stock: data.stock,
+        lowStockThreshold: data.lowStockThreshold,
+        userId: data.userId ?? "",
+      },
+    });
+    return toProduct(product);
   },
 
-  update(
+  async update(
     id: string,
     data: Partial<{
       sku: string;
@@ -51,42 +53,76 @@ export const productModel = {
       stock: number;
       lowStockThreshold: number;
     }>,
-  ): Product | undefined {
-    const index = products.findIndex((product) => product.id === id);
-    if (index === -1) return undefined;
-
-    products[index] = {
-      ...products[index],
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    return products[index];
+  ): Promise<Product | undefined> {
+    try {
+      const product = await prisma.product.update({ where: { id }, data });
+      return toProduct(product);
+    } catch {
+      return undefined;
+    }
   },
 
-  remove(id: string): boolean {
-    const index = products.findIndex((product) => product.id === id);
-    if (index === -1) return false;
-    products.splice(index, 1);
-    return true;
+  async remove(id: string): Promise<boolean> {
+    try {
+      await prisma.product.delete({ where: { id } });
+      return true;
+    } catch {
+      return false;
+    }
   },
 
-  adjustStock(id: string, delta: number): Product | undefined {
-    const product = products.find((p) => p.id === id);
-    if (!product) return undefined;
-    product.stock = Math.max(0, product.stock + delta);
-    product.updatedAt = new Date().toISOString();
-    return product;
+  async adjustStock(id: string, delta: number): Promise<Product | undefined> {
+    try {
+      const product = await prisma.product.update({
+        where: { id },
+        data: { stock: { increment: delta } },
+      });
+      if (product.stock < 0) {
+        await prisma.product.update({
+          where: { id },
+          data: { stock: 0 },
+        });
+        return toProduct({ ...product, stock: 0 });
+      }
+      return toProduct(product);
+    } catch {
+      return undefined;
+    }
   },
 
-  setStock(id: string, value: number): Product | undefined {
-    const product = products.find((p) => p.id === id);
-    if (!product) return undefined;
-    product.stock = Math.max(0, value);
-    product.updatedAt = new Date().toISOString();
-    return product;
+  async setStock(id: string, value: number): Promise<Product | undefined> {
+    try {
+      const product = await prisma.product.update({
+        where: { id },
+        data: { stock: Math.max(0, value) },
+      });
+      return toProduct(product);
+    } catch {
+      return undefined;
+    }
   },
 
-  clear(): void {
-    products.length = 0;
+  async clear(): Promise<void> {
+    await prisma.product.deleteMany();
   },
 };
+
+function toProduct(p: {
+  id: string; userId: string; sku: string; name: string; category: string;
+  price: number; cost: number; stock: number; lowStockThreshold: number;
+  createdAt: Date; updatedAt: Date;
+}): Product {
+  return {
+    id: p.id,
+    userId: p.userId,
+    sku: p.sku,
+    name: p.name,
+    category: p.category,
+    price: p.price,
+    cost: p.cost,
+    stock: p.stock,
+    lowStockThreshold: p.lowStockThreshold,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+  };
+}

@@ -13,10 +13,10 @@ export function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      auth.register(name, email, password);
+      await auth.register(name, email, password);
       toast.success("Account created");
       navigate("/dashboard");
     } catch (err) {

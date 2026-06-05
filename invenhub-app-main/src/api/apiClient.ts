@@ -28,7 +28,13 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url ?? "";
+
+    if (
+      error.response?.status === 401 &&
+      !url.startsWith("/auth/login") &&
+      !url.startsWith("/auth/register")
+    ) {
       localStorage.removeItem("auth_token");
       localStorage.removeItem("auth_user");
 

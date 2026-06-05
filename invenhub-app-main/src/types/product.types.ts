@@ -1,5 +1,6 @@
 export interface Product {
   id: string;
+  userId: string;
   sku: string;
   name: string;
   category: string;
@@ -7,6 +8,8 @@ export interface Product {
   cost: number;
   stock: number;
   lowStockThreshold: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateProductRequest {

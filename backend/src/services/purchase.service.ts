@@ -3,14 +3,20 @@ import { productModel } from "../models/product.model";
 import type { PurchaseResponseDto, PurchaseStatsResponseDto } from "../dtos/purchase.dto";
 import type { CreatePurchaseRequestDto } from "../dtos/purchase.dto";
 
+async function getUserProductIds(userId: string): Promise<string[]> {
+  const products = await productModel.findByUserId(userId);
+  return products.map((p) => p.id);
+}
+
 export const purchaseService = {
-  getAll(productId?: string): {
+  async getAll(productId: string | undefined, userId: string): Promise<{
     data: PurchaseResponseDto[];
     total: number;
     totalCost: number;
     count: number;
-  } {
-    let purchases = purchaseModel.findAll();
+  }> {
+    const userProductIds = await getUserProductIds(userId);
+    let purchases = (await purchaseModel.findAll()).filter((p) => userProductIds.includes(p.productId));
 
     if (productId) {
       purchases = purchases.filter((purchase) => purchase.productId === productId);
@@ -27,26 +33,31 @@ export const purchaseService = {
     };
   },
 
-  getById(id: string): PurchaseResponseDto {
-    const purchase = purchaseModel.findById(id);
+  async getById(id: string, userId: string): Promise<PurchaseResponseDto> {
+    const purchase = await purchaseModel.findById(id);
 
     if (!purchase) {
+      throwObject("Purchase not found", 404);
+    }
+
+    const product = await productModel.findById(purchase.productId);
+    if (!product || product.userId !== userId) {
       throwObject("Purchase not found", 404);
     }
 
     return mapToPurchaseResponse(purchase);
   },
 
-  create(input: CreatePurchaseRequestDto): PurchaseResponseDto {
-    const product = productModel.findById(input.productId);
+  async create(input: CreatePurchaseRequestDto, userId: string): Promise<PurchaseResponseDto> {
+    const product = await productModel.findById(input.productId);
 
-    if (!product) {
+    if (!product || product.userId !== userId) {
       throwObject("Product not found", 404);
     }
 
     const total = input.quantity * input.unitCost;
 
-    const purchase = purchaseModel.create({
+    const purchase = await purchaseModel.create({
       productId: input.productId,
       quantity: input.quantity,
       unitCost: input.unitCost,
@@ -54,24 +65,30 @@ export const purchaseService = {
       supplier: input.supplier,
     });
 
-    productModel.adjustStock(input.productId, input.quantity);
+    await productModel.adjustStock(input.productId, input.quantity);
 
     return mapToPurchaseResponse(purchase);
   },
 
-  remove(id: string): void {
-    const purchase = purchaseModel.findById(id);
+  async remove(id: string, userId: string): Promise<void> {
+    const purchase = await purchaseModel.findById(id);
 
     if (!purchase) {
       throwObject("Purchase not found", 404);
     }
 
-    productModel.adjustStock(purchase.productId, -purchase.quantity);
-    purchaseModel.remove(id);
+    const product = await productModel.findById(purchase.productId);
+    if (!product || product.userId !== userId) {
+      throwObject("Purchase not found", 404);
+    }
+
+    await productModel.adjustStock(purchase.productId, -purchase.quantity);
+    await purchaseModel.remove(id);
   },
 
-  getStats(): PurchaseStatsResponseDto {
-    const purchases = purchaseModel.findAll();
+  async getStats(userId: string): Promise<PurchaseStatsResponseDto> {
+    const userProductIds = await getUserProductIds(userId);
+    const purchases = (await purchaseModel.findAll()).filter((p) => userProductIds.includes(p.productId));
 
     if (purchases.length === 0) {
       return {

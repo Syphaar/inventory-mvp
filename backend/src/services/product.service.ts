@@ -5,24 +5,24 @@ import type { ProductResponseDto } from "../dtos/product.dto";
 import type { CreateProductRequestDto, UpdateProductRequestDto } from "../dtos/product.dto";
 
 export const productService = {
-  getAll(): { data: ProductResponseDto[]; total: number } {
-    const products = productModel.findAll();
+  async getAll(userId: string): Promise<{ data: ProductResponseDto[]; total: number }> {
+    const products = await productModel.findByUserId(userId);
     const data = products.map(mapToProductResponse);
     return { data, total: data.length };
   },
 
-  getById(id: string): ProductResponseDto {
-    const product = productModel.findById(id);
+  async getById(id: string, userId: string): Promise<ProductResponseDto> {
+    const product = await productModel.findById(id);
 
-    if (!product) {
+    if (!product || product.userId !== userId) {
       throwObject("Product not found", 404);
     }
 
     return mapToProductResponse(product);
   },
 
-  create(input: CreateProductRequestDto & { userId: string }): ProductResponseDto {
-    const product = productModel.create({
+  async create(input: CreateProductRequestDto & { userId: string }): Promise<ProductResponseDto> {
+    const product = await productModel.create({
       sku: input.sku,
       name: input.name,
       category: input.category,
@@ -36,14 +36,14 @@ export const productService = {
     return mapToProductResponse(product);
   },
 
-  update(id: string, input: UpdateProductRequestDto): ProductResponseDto {
-    const existingProduct = productModel.findById(id);
+  async update(id: string, input: UpdateProductRequestDto, userId: string): Promise<ProductResponseDto> {
+    const existingProduct = await productModel.findById(id);
 
-    if (!existingProduct) {
+    if (!existingProduct || existingProduct.userId !== userId) {
       throwObject("Product not found", 404);
     }
 
-    const updatedProduct = productModel.update(id, input);
+    const updatedProduct = await productModel.update(id, input);
 
     if (!updatedProduct) {
       throwObject("Product not found", 404);
@@ -52,24 +52,24 @@ export const productService = {
     return mapToProductResponse(updatedProduct);
   },
 
-  remove(id: string): void {
-    const existingProduct = productModel.findById(id);
+  async remove(id: string, userId: string): Promise<void> {
+    const existingProduct = await productModel.findById(id);
 
-    if (!existingProduct) {
+    if (!existingProduct || existingProduct.userId !== userId) {
       throwObject("Product not found", 404);
     }
 
-    const relatedSales = saleModel.findByProductId(id);
+    const relatedSales = await saleModel.findByProductId(id);
     for (const sale of relatedSales) {
-      saleModel.remove(sale.id);
+      await saleModel.remove(sale.id);
     }
 
-    const relatedPurchases = purchaseModel.findByProductId(id);
+    const relatedPurchases = await purchaseModel.findByProductId(id);
     for (const purchase of relatedPurchases) {
-      purchaseModel.remove(purchase.id);
+      await purchaseModel.remove(purchase.id);
     }
 
-    productModel.remove(id);
+    await productModel.remove(id);
   },
 };
 

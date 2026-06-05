@@ -3,27 +3,29 @@ import { productService } from "../services/product.service";
 import { sendSuccess, sendPaginated } from "../utils/api-response";
 
 export const productController = {
-  getAll(_request: Request, response: Response, next: NextFunction): void {
+  async getAll(request: Request, response: Response, next: NextFunction): Promise<void> {
     try {
-      const result = productService.getAll();
+      const userId = (request as any).user.userId;
+      const result = await productService.getAll(userId);
       sendPaginated(response, result.data, result.total);
     } catch (error) {
       next(error);
     }
   },
 
-  getById(request: Request, response: Response, next: NextFunction): void {
+  async getById(request: Request, response: Response, next: NextFunction): Promise<void> {
     try {
-      const product = productService.getById(request.params.id);
+      const userId = (request as any).user.userId;
+      const product = await productService.getById(request.params.id, userId);
       sendSuccess(response, product);
     } catch (error) {
       next(error);
     }
   },
 
-  create(request: Request, response: Response, next: NextFunction): void {
+  async create(request: Request, response: Response, next: NextFunction): Promise<void> {
     try {
-      const product = productService.create({
+      const product = await productService.create({
         ...request.body,
         userId: (request as any).user.userId,
       });
@@ -33,18 +35,20 @@ export const productController = {
     }
   },
 
-  update(request: Request, response: Response, next: NextFunction): void {
+  async update(request: Request, response: Response, next: NextFunction): Promise<void> {
     try {
-      const product = productService.update(request.params.id, request.body);
+      const userId = (request as any).user.userId;
+      const product = await productService.update(request.params.id, request.body, userId);
       sendSuccess(response, product, { message: "Product updated" });
     } catch (error) {
       next(error);
     }
   },
 
-  remove(request: Request, response: Response, next: NextFunction): void {
+  async remove(request: Request, response: Response, next: NextFunction): Promise<void> {
     try {
-      productService.remove(request.params.id);
+      const userId = (request as any).user.userId;
+      await productService.remove(request.params.id, userId);
       sendSuccess(response, null, { message: "Product deleted" });
     } catch (error) {
       next(error);
