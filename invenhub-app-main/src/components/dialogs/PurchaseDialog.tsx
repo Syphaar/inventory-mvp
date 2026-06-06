@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -31,7 +32,7 @@ export function PurchaseDialog({
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [unitCost, setUnitCost] = useState(0);
-  const [supplier, setSupplier] = useState("");
+  const [supplier, setSupplier] = useState("Unknown supplier");
 
   useEffect(() => {
     if (open) {
@@ -39,7 +40,7 @@ export function PurchaseDialog({
       setProductId(first?.id ?? "");
       setUnitCost(first?.cost ?? 0);
       setQuantity(1);
-      setSupplier("");
+      setSupplier("Unknown supplier");
     }
   }, [open, productList]);
 
@@ -50,8 +51,18 @@ export function PurchaseDialog({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!productId) {
+      toast.error("Select a product before recording a purchase");
+      return;
+    }
+
     try {
-      await createPurchase.mutateAsync({ productId, quantity, unitCost, supplier });
+      await createPurchase.mutateAsync({
+        productId,
+        quantity,
+        unitCost,
+        supplier: supplier.trim() || "Unknown supplier",
+      });
       toast.success("Purchase recorded · stock increased");
       onOpenChange(false);
     } catch (err: any) {
@@ -64,6 +75,9 @@ export function PurchaseDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New purchase / restock</DialogTitle>
+          <DialogDescription className="sr-only">
+            Purchase details form.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="space-y-1.5">

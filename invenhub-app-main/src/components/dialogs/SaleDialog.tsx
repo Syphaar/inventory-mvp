@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -31,7 +32,7 @@ export function SaleDialog({
   const [productId, setProductId] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
-  const [customer, setCustomer] = useState("");
+  const [customer, setCustomer] = useState("Walk-in");
 
   useEffect(() => {
     if (open) {
@@ -39,7 +40,7 @@ export function SaleDialog({
       setProductId(first?.id ?? "");
       setUnitPrice(first?.price ?? 0);
       setQuantity(1);
-      setCustomer("");
+      setCustomer("Walk-in");
     }
   }, [open, productList]);
 
@@ -50,8 +51,18 @@ export function SaleDialog({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!productId) {
+      toast.error("Select a product before recording a sale");
+      return;
+    }
+
     try {
-      await createSale.mutateAsync({ productId, quantity, unitPrice, customer });
+      await createSale.mutateAsync({
+        productId,
+        quantity,
+        unitPrice,
+        customer: customer.trim() || "Walk-in",
+      });
       toast.success("Sale recorded · stock updated");
       onOpenChange(false);
     } catch (err: any) {
@@ -64,6 +75,9 @@ export function SaleDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New sale</DialogTitle>
+          <DialogDescription className="sr-only">
+            Sale details form.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="space-y-1.5">

@@ -110,7 +110,7 @@ export const productModel = {
 function toProduct(p: {
   id: string; userId: string; sku: string; name: string; category: string;
   price: number; cost: number; stock: number; lowStockThreshold: number;
-  createdAt: Date; updatedAt: Date;
+  createdAt: Date | string | null; updatedAt: Date | string | null;
 }): Product {
   return {
     id: p.id,
@@ -122,7 +122,20 @@ function toProduct(p: {
     cost: p.cost,
     stock: p.stock,
     lowStockThreshold: p.lowStockThreshold,
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
+    createdAt: toIsoString(p.createdAt),
+    updatedAt: toIsoString(p.updatedAt),
   };
+}
+
+function toIsoString(value: Date | string | null): string {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === "string") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+  }
+
+  return new Date().toISOString();
 }

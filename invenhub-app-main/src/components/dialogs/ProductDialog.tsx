@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -64,6 +65,9 @@ export function ProductDialog({ open, onOpenChange, product }: Props) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{product ? "Edit product" : "New product"}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Product details form.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
