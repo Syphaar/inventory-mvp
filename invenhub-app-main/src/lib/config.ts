@@ -1,5 +1,15 @@
+function getApiBaseUrl(): string {
+  const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
+
+  if (!apiUrl) {
+    return "/api";
+  }
+
+  return apiUrl.endsWith("/api") ? apiUrl : `${apiUrl}/api`;
+}
+
 export const API_CONFIG = {
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: getApiBaseUrl(),
   timeout: 10000,
 };
 

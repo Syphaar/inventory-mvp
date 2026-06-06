@@ -27,8 +27,8 @@ export const deletePurchase = async (id: string): Promise<void> => {
 };
 
 export const getStats = async (): Promise<PurchaseStats> => {
-  const response = await apiClient.get<PurchaseStats>("/purchases/stats");
-  return response.data;
+  const response = await apiClient.get<ApiResponse<PurchaseStats>>("/purchases/stats");
+  return response.data.data;
 };
 
 export const purchaseApi = {

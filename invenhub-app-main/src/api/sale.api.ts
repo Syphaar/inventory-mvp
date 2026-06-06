@@ -28,8 +28,8 @@ export const deleteSale = async (id: string): Promise<void> => {
 };
 
 export const getStats = async (): Promise<SalesStats> => {
-  const response = await apiClient.get<SalesStats>("/sales/stats");
-  return response.data;
+  const response = await apiClient.get<ApiResponse<SalesStats>>("/sales/stats");
+  return response.data.data;
 };
 
 export const getByProductId = async (productId: string): Promise<Sale[]> => {
