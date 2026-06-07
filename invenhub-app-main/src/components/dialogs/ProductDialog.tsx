@@ -42,16 +42,24 @@ export function ProductDialog({ open, onOpenChange, product }: Props) {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!form.name || !form.sku) {
-      toast.error("Name and SKU are required");
+    const payload = {
+      ...form,
+      sku: form.sku.trim(),
+      name: form.name.trim(),
+      category: form.category.trim(),
+    };
+
+    if (!payload.name || !payload.sku || !payload.category) {
+      toast.error("Name, SKU, and category are required");
       return;
     }
+
     try {
       if (product) {
-        await updateProduct.mutateAsync({ id: product.id, data: form });
+        await updateProduct.mutateAsync({ id: product.id, data: payload });
         toast.success("Product updated");
       } else {
-        await createProduct.mutateAsync(form);
+        await createProduct.mutateAsync(payload);
         toast.success("Product created");
       }
       onOpenChange(false);

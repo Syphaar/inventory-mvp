@@ -17,6 +17,11 @@ export const productModel = {
     return products.map(toProduct);
   },
 
+  async findBySkuForUser(sku: string, userId: string): Promise<Product | undefined> {
+    const product = await prisma.product.findFirst({ where: { sku, userId } });
+    return product ? toProduct(product) : undefined;
+  },
+
   async create(data: {
     sku: string;
     name: string;
@@ -25,7 +30,7 @@ export const productModel = {
     cost: number;
     stock: number;
     lowStockThreshold: number;
-    userId?: string;
+    userId: string;
   }): Promise<Product> {
     const product = await prisma.product.create({
       data: {
@@ -36,7 +41,7 @@ export const productModel = {
         cost: data.cost,
         stock: data.stock,
         lowStockThreshold: data.lowStockThreshold,
-        userId: data.userId ?? "",
+        userId: data.userId,
       },
     });
     return toProduct(product);

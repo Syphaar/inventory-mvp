@@ -22,16 +22,32 @@ export const productService = {
   },
 
   async create(input: CreateProductRequestDto & { userId: string }): Promise<ProductResponseDto> {
-    const product = await productModel.create({
-      sku: input.sku,
-      name: input.name,
-      category: input.category,
-      price: input.price,
-      cost: input.cost,
-      stock: input.stock,
-      lowStockThreshold: input.lowStockThreshold,
-      userId: input.userId,
-    });
+    const sku = input.sku.trim();
+    const existingProduct = await productModel.findBySkuForUser(sku, input.userId);
+
+    if (existingProduct) {
+      throwObject("A product with this SKU already exists", 409);
+    }
+
+    let product;
+    try {
+      product = await productModel.create({
+        sku,
+        name: input.name.trim(),
+        category: input.category.trim(),
+        price: input.price,
+        cost: input.cost,
+        stock: input.stock,
+        lowStockThreshold: input.lowStockThreshold,
+        userId: input.userId,
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throwObject("A product with this SKU already exists", 409);
+      }
+
+      throw error;
+    }
 
     return mapToProductResponse(product);
   },
@@ -93,4 +109,8 @@ function throwObject(message: string, statusCode: number): never {
   const error: any = new Error(message);
   error.statusCode = statusCode;
   throw error;
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && (error as { code?: string }).code === "P2002";
 }
